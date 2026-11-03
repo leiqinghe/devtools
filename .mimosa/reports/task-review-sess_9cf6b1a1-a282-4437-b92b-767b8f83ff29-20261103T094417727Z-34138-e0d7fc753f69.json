@@ -1,0 +1,942 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261103T094417727Z-34138-e0d7fc753f69",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "baseline",
+      "target": ".",
+      "reason": "baseline_partial: baseline capture had enumeration or snapshot errors"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": false,
+      "captured_files": 47,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 1,
+      "compensated_target_count": 6
+    },
+    "change_tracking": {
+      "touched_observed": 4,
+      "touched_retained": 4,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 6,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 6,
+      "selected_files": 6,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 5,
+      "scanned_files": 5,
+      "skipped_files": 0,
+      "failed_files": 0,
+      "project_checks_required": 1,
+      "project_checks_completed": 1
+    },
+    "notification": {
+      "eligible_findings": 11,
+      "detailed_findings": 3,
+      "detail_limit": 3,
+      "truncated": true
+    },
+    "reason_counts": {
+      "baseline_partial": 1,
+      "project_check_failed": 1
+    },
+    "reasons": [
+      {
+        "code": "baseline_partial",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline capture had enumeration or snapshot errors",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline_partial: baseline capture had enumeration or snapshot errors",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-11-03T09:44:17.727Z",
+  "session_id": "sess_9cf6b1a1-a282-4437-b92b-767b8f83ff29",
+  "target": ".",
+  "revision": "8159236a9b76dea321e0ee02103a0b5757597a13",
+  "rules_version": "unavailable",
+  "diff_hash": "1b873035efb79361d21155199af1c5a199f1848c897d0286b0a16a1a6e4b4cea",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 6,
+    "changed_files": [
+      {
+        "file": "AGENTS.md",
+        "ranges": [
+          {
+            "start": 49,
+            "end": 53
+          },
+          {
+            "start": 68,
+            "end": 71
+          },
+          {
+            "start": 73,
+            "end": 74
+          },
+          {
+            "start": 77,
+            "end": 83
+          },
+          {
+            "start": 110,
+            "end": 124
+          },
+          {
+            "start": 135,
+            "end": 137
+          }
+        ],
+        "before_hash": "e3412253c7672d3d4c7dbdfa96ae12a21051ab4b764af3d5660377cccfc78c4c",
+        "after_hash": "02517aa16d006548974aef463549944bf5e5f1d9a9e6327700f9f2dc99e424f4"
+      },
+      {
+        "file": "server/server.js",
+        "ranges": [
+          {
+            "start": 5,
+            "end": 6
+          },
+          {
+            "start": 25,
+            "end": 28
+          },
+          {
+            "start": 75,
+            "end": 78
+          },
+          {
+            "start": 96,
+            "end": 96
+          },
+          {
+            "start": 101,
+            "end": 101
+          }
+        ],
+        "before_hash": "74b3115adf348569f727ecb31b2633c0b9e0103667182f7c22e21677f9a89dcf",
+        "after_hash": "f5cb245d3748330d304b810a76af44aaeb652ce6e481332ec89ac0e26f582394"
+      },
+      {
+        "file": "server/share-code-router.js",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 162
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "afdaaeb080643007ef668fdfcbcba159730d712f14232a75d61a365619965ecb"
+      },
+      {
+        "file": "src/layouts/MainLayout.tsx",
+        "ranges": [
+          {
+            "start": 3,
+            "end": 4
+          },
+          {
+            "start": 98,
+            "end": 102
+          }
+        ],
+        "before_hash": "2912c393ad6162f7bcdbb4b63c28e32069ce8c4433983d9795e56cc60875dbf2",
+        "after_hash": "c456ba5e5f442a596e99525489b16176ee37dc9a274149c83197f18eed62d58d"
+      },
+      {
+        "file": "src/pages/tools/FileShare.tsx",
+        "ranges": [
+          {
+            "start": 16,
+            "end": 16
+          },
+          {
+            "start": 18,
+            "end": 26
+          },
+          {
+            "start": 30,
+            "end": 39
+          },
+          {
+            "start": 73,
+            "end": 75
+          },
+          {
+            "start": 89,
+            "end": 91
+          },
+          {
+            "start": 96,
+            "end": 98
+          },
+          {
+            "start": 100,
+            "end": 101
+          },
+          {
+            "start": 103,
+            "end": 104
+          },
+          {
+            "start": 115,
+            "end": 115
+          },
+          {
+            "start": 118,
+            "end": 118
+          },
+          {
+            "start": 121,
+            "end": 124
+          },
+          {
+            "start": 147,
+            "end": 150
+          },
+          {
+            "start": 155,
+            "end": 155
+          },
+          {
+            "start": 161,
+            "end": 161
+          },
+          {
+            "start": 181,
+            "end": 181
+          },
+          {
+            "start": 187,
+            "end": 209
+          },
+          {
+            "start": 276,
+            "end": 276
+          },
+          {
+            "start": 279,
+            "end": 312
+          },
+          {
+            "start": 352,
+            "end": 366
+          },
+          {
+            "start": 396,
+            "end": 399
+          }
+        ],
+        "before_hash": "d36e8345ffee214a7daf39258b3d873f8686c9ed68d238cd76b6ec397e6d30e5",
+        "after_hash": "e98badbdcd40dfb8b7dd1b15de5220631f7ee32b4713902b139c8a35f602bce8"
+      },
+      {
+        "file": "src/pages/tools/ImageGen.tsx",
+        "ranges": [
+          {
+            "start": 11,
+            "end": 11
+          },
+          {
+            "start": 16,
+            "end": 16
+          },
+          {
+            "start": 19,
+            "end": 26
+          },
+          {
+            "start": 59,
+            "end": 59
+          },
+          {
+            "start": 68,
+            "end": 68
+          },
+          {
+            "start": 86,
+            "end": 105
+          },
+          {
+            "start": 107,
+            "end": 110
+          },
+          {
+            "start": 112,
+            "end": 112
+          },
+          {
+            "start": 120,
+            "end": 139
+          },
+          {
+            "start": 159,
+            "end": 159
+          },
+          {
+            "start": 168,
+            "end": 217
+          },
+          {
+            "start": 219,
+            "end": 219
+          },
+          {
+            "start": 223,
+            "end": 227
+          },
+          {
+            "start": 234,
+            "end": 245
+          },
+          {
+            "start": 261,
+            "end": 274
+          },
+          {
+            "start": 283,
+            "end": 283
+          }
+        ],
+        "before_hash": "7cd9d833e0951746e174568f40444179a84bdf832e94bb7d652add527e0b942a",
+        "after_hash": "d432a328094fe7278bd11658b3ecfb9f2858043951d6977c055826469693c4ae"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-11-03T09:44:17.028Z",
+    "completed_at": "2026-11-03T09:44:17.727Z",
+    "duration_ms": 699,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 699,
+    "peakMemoryBytes": 203079680,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 5,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 11,
+  "rewake_finding_count": 3,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [
+    {
+      "finding_id": "mimosa-34993bc7229bd32e6539d6b6",
+      "file": "server/server.js",
+      "line": 90,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "XSS 跨站脚本",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-11-03T09:38:32.612Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "5939f97aad5df3c8297010d73675a41ea7fb03baf9a8bd2a35d856c018b56b88",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-34993bc7229bd32e6539d6b6",
+      "file": "server/server.js",
+      "line": 90,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "跨站脚本",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-11-03T09:38:32.612Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "5939f97aad5df3c8297010d73675a41ea7fb03baf9a8bd2a35d856c018b56b88",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-639dfcfd8c9fba789a2798af",
+      "file": "server/server.js",
+      "line": 95,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "XSS 跨站脚本",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-11-03T09:38:32.613Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "0600164636ad0511aebd11e88b7b6cb3d8f88a386fc11ec5f89378db225800b4",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-639dfcfd8c9fba789a2798af",
+      "file": "server/server.js",
+      "line": 95,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "跨站脚本",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-11-03T09:38:32.613Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "0600164636ad0511aebd11e88b7b6cb3d8f88a386fc11ec5f89378db225800b4",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-db8634ba1680d9aeeb9fa6d5",
+      "file": "server/share-code-router.js",
+      "line": 57,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "stop_rewake",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "914b519feb96389572252671d67c89d7bc707ddb4a0756a4a1613f8e78a99182",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-b1186f5cbd1880e57f96cd73",
+      "file": "server/share-code-router.js",
+      "line": 72,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "stop_rewake",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "e3499c7ce39f472a263247ccd90d0c138ea543f3eb9689fecb240ac68cee3c7c",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-aa6ba369e326f7e699af9a69",
+      "file": "server/share-code-router.js",
+      "line": 74,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "stop_rewake",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "227db35f569bc302308799b578f9c306c3c44ba55c386176135bea4bd28cd96c",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-aa6ba369e326f7e699af9a69",
+      "file": "server/share-code-router.js",
+      "line": 80,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "stop_rewake",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "227db35f569bc302308799b578f9c306c3c44ba55c386176135bea4bd28cd96c",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-0fd86df00ae962c43b94fab3",
+      "file": "server/share-code-router.js",
+      "line": 89,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "1340448d58e71e5383b6fa17a4d9f7ace7de314219e97e3e01391e4c25f13ffd",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-b9911646fbb355386690f4ec",
+      "file": "server/share-code-router.js",
+      "line": 94,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "a42791b58ddd5dfba4b0df93ac1d796357b149c843782fe28690864527c03531",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-9c5c1adcc0482af04740e3bf",
+      "file": "server/share-code-router.js",
+      "line": 122,
+      "severity": "high",
+      "category": "XSS 跨站脚本",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "5939f97aad5df3c8297010d73675a41ea7fb03baf9a8bd2a35d856c018b56b88",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-3894aea6e9380040b27f8a61",
+      "file": "server/share-code-router.js",
+      "line": 127,
+      "severity": "high",
+      "category": "XSS 跨站脚本",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "0600164636ad0511aebd11e88b7b6cb3d8f88a386fc11ec5f89378db225800b4",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-4256f02d0fb5a91f1826365e",
+      "file": "server/share-code-router.js",
+      "line": 134,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "030151440c8fed209382fd4a29f0be89682d7270cb2edc37017220074f10e9d1",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-720c4eea3130b965ae2e0254",
+      "file": "server/share-code-router.js",
+      "line": 145,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "f460321a1e096f6ad3c2bcfba4716c6a1cad7514a7bddb8403c29ea52bffed0b",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-07584ee2d16b9f2b857790ed",
+      "file": "server/share-code-router.js",
+      "line": 150,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-11-03T09:44:17.727Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "f1582cb422580c2878c35e806f9e37aad8a99bcdf7652579fb97c626cd902c3e",
+        "runtime_oracle": false
+      }
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "mimosa-db8634ba1680d9aeeb9fa6d5",
+      "file": "server/share-code-router.js",
+      "line": 57,
+      "end_line": 57,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "blocked",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 57,
+          "evidence_hash": "914b519feb96389572252671d67c89d7bc707ddb4a0756a4a1613f8e78a99182",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": true
+    },
+    {
+      "finding_id": "mimosa-b1186f5cbd1880e57f96cd73",
+      "file": "server/share-code-router.js",
+      "line": 72,
+      "end_line": 72,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "blocked",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 72,
+          "evidence_hash": "e3499c7ce39f472a263247ccd90d0c138ea543f3eb9689fecb240ac68cee3c7c",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": true
+    },
+    {
+      "finding_id": "mimosa-aa6ba369e326f7e699af9a69",
+      "file": "server/share-code-router.js",
+      "line": 74,
+      "end_line": 74,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "blocked",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 74,
+          "evidence_hash": "227db35f569bc302308799b578f9c306c3c44ba55c386176135bea4bd28cd96c",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": true
+    },
+    {
+      "finding_id": "mimosa-aa6ba369e326f7e699af9a69",
+      "file": "server/share-code-router.js",
+      "line": 80,
+      "end_line": 80,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "blocked",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 80,
+          "evidence_hash": "227db35f569bc302308799b578f9c306c3c44ba55c386176135bea4bd28cd96c",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": true
+    },
+    {
+      "finding_id": "mimosa-0fd86df00ae962c43b94fab3",
+      "file": "server/share-code-router.js",
+      "line": 89,
+      "end_line": 89,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 89,
+          "evidence_hash": "1340448d58e71e5383b6fa17a4d9f7ace7de314219e97e3e01391e4c25f13ffd",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    },
+    {
+      "finding_id": "mimosa-b9911646fbb355386690f4ec",
+      "file": "server/share-code-router.js",
+      "line": 94,
+      "end_line": 94,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 94,
+          "evidence_hash": "a42791b58ddd5dfba4b0df93ac1d796357b149c843782fe28690864527c03531",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    },
+    {
+      "finding_id": "mimosa-9c5c1adcc0482af04740e3bf",
+      "file": "server/share-code-router.js",
+      "line": 122,
+      "end_line": 122,
+      "severity": "high",
+      "category": "XSS 跨站脚本",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 122,
+          "evidence_hash": "5939f97aad5df3c8297010d73675a41ea7fb03baf9a8bd2a35d856c018b56b88",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    },
+    {
+      "finding_id": "mimosa-3894aea6e9380040b27f8a61",
+      "file": "server/share-code-router.js",
+      "line": 127,
+      "end_line": 127,
+      "severity": "high",
+      "category": "XSS 跨站脚本",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 127,
+          "evidence_hash": "0600164636ad0511aebd11e88b7b6cb3d8f88a386fc11ec5f89378db225800b4",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    },
+    {
+      "finding_id": "mimosa-4256f02d0fb5a91f1826365e",
+      "file": "server/share-code-router.js",
+      "line": 134,
+      "end_line": 134,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 134,
+          "evidence_hash": "030151440c8fed209382fd4a29f0be89682d7270cb2edc37017220074f10e9d1",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    },
+    {
+      "finding_id": "mimosa-720c4eea3130b965ae2e0254",
+      "file": "server/share-code-router.js",
+      "line": 145,
+      "end_line": 145,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 145,
+          "evidence_hash": "f460321a1e096f6ad3c2bcfba4716c6a1cad7514a7bddb8403c29ea52bffed0b",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    },
+    {
+      "finding_id": "mimosa-07584ee2d16b9f2b857790ed",
+      "file": "server/share-code-router.js",
+      "line": 150,
+      "end_line": 150,
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "server/share-code-router.js",
+          "line": 150,
+          "evidence_hash": "f1582cb422580c2878c35e806f9e37aad8a99bcdf7652579fb97c626cd902c3e",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    }
+  ],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-sess_9cf6b1a1-a282-4437-b92b-767b8f83ff29-20261103T094417727Z-34138-e0d7fc753f69.json",
+    "latest_report": ".mimosa/reports/task-review-sess_9cf6b1a1-a282-4437-b92b-767b8f83ff29.json",
+    "history_summary": ".mimosa/history/run-20261103T094417727Z-34138-e0d7fc753f69.json"
+  }
+}
