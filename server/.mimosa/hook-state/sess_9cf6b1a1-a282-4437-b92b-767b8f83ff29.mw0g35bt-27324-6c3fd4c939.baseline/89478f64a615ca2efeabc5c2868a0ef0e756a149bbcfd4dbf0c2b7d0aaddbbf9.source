@@ -1,0 +1,158 @@
+import { Router } from "express";
+import multer from "multer";
+import crypto from "crypto";
+
+const router = Router();
+const MAX_SIZE = 500 * 1024 * 1024;
+const CHUNK_SIZE = 2 * 1024 * 1024;
+// 快捷分享码规则：3~12 位字母或数字
+const CODE_PATTERN = /^[a-zA-Z0-9]{3,12}$/;
+
+// code -> { id, name, size, expiresAt }
+const codeFiles = new Map();
+// id -> { buffer, name, type, size, expiresAt }（本路由接管的完整文件存储）
+const storedFiles = new Map();
+// 查询限流：ip -> [timestamps]
+const queryRateMap = new Map();
+const QUERY_RATE_LIMIT = 20;
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_SIZE },
+});
+
+// 内存分片暂存（与 server.js 的 uploads 逻辑一致，独立维护）
+const pendingUploads = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, up] of pendingUploads) {
+    if (now - up.lastAt > 30 * 60 * 1000) pendingUploads.delete(key);
+  }
+  for (const [code, item] of codeFiles) {
+    if (now > item.expiresAt) codeFiles.delete(code);
+  }
+  for (const [id, item] of storedFiles) {
+    if (now > item.expiresAt) storedFiles.delete(id);
+  }
+}, 60000);
+
+// 接管 /api/share/upload（支持可选的快捷分享码；挂载顺序在 server.js 原路由之前）
+router.post("/api/share/upload", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file data" });
+  }
+  const fileId = req.body.fileId || crypto.randomBytes(8).toString("hex");
+  const partIndex = parseInt(req.body.partIndex || "0", 10);
+  const totalParts = parseInt(req.body.totalParts || "1", 10);
+  // multer 按 UTF-8 解析文本字段，直接使用（不做 latin1 转换，避免中文乱码）
+  const name = req.body.name || "file";
+  const type = req.body.type || "application/octet-stream";
+  const minutes = Math.max(1, Math.min(parseInt(req.body.minutes || "10", 10), 1440));
+  const code = typeof req.body.code === "string" ? req.body.code.trim() : "";
+
+  if (code && !CODE_PATTERN.test(code)) {
+    return res.status(400).json({ error: "分享码需为 3~12 位字母或数字" });
+  }
+
+  let up = pendingUploads.get(fileId);
+  if (!up) {
+    up = { parts: [], totalParts, name, type, minutes, code, lastAt: Date.now() };
+    pendingUploads.set(fileId, up);
+  }
+  up.parts[partIndex] = req.file.buffer;
+  up.lastAt = Date.now();
+
+  const received = up.parts.filter(Boolean).length;
+  if (received >= totalParts) {
+    const buffer = Buffer.concat(up.parts);
+    const id = crypto.randomBytes(8).toString("hex");
+    const ttl = minutes * 60 * 1000;
+    const expiresAt = Date.now() + ttl;
+    if (up.code) {
+      const existing = codeFiles.get(up.code);
+      if (existing && existing.expiresAt > Date.now()) {
+        pendingUploads.delete(fileId);
+        return res.status(409).json({ error: `分享码「${up.code}」已被占用，请换一个` });
+      }
+      codeFiles.set(up.code, { id, name, size: buffer.length, expiresAt });
+    }
+    storedFiles.set(id, { buffer, name, type, size: buffer.length, expiresAt });
+    pendingUploads.delete(fileId);
+    res.json({ done: true, id, code: up.code || null, expiresAt: new Date(expiresAt).toISOString(), size: buffer.length });
+  } else {
+    res.json({ done: false, received, total: totalParts });
+  }
+});
+
+// 接管 /share/:id 下载（本路由存储的文件；挂载顺序在 server.js 原路由之前）
+router.get("/share/:id", (req, res) => {
+  const item = storedFiles.get(req.params.id);
+  if (!item) {
+    return res.status(404).json({ error: "文件不存在或已过期" });
+  }
+  if (Date.now() > item.expiresAt) {
+    storedFiles.delete(req.params.id);
+    return res.status(404).json({ error: "文件已过期" });
+  }
+
+  const total = item.buffer.length;
+  const range = req.headers.range;
+
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Accept-Ranges", "bytes");
+  res.setHeader("Content-Type", item.type || "application/octet-stream");
+
+  if (range) {
+    const match = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(match[0], 10);
+    const end = match[1] ? parseInt(match[1], 10) : total - 1;
+    const safeStart = isNaN(start) || start < 0 ? 0 : Math.min(start, total - 1);
+    const safeEnd = isNaN(end) || end >= total ? total - 1 : end;
+    if (safeStart > safeEnd) {
+      return res.status(416).setHeader("Content-Range", `bytes */${total}`).end();
+    }
+    res.status(206);
+    res.setHeader("Content-Range", `bytes ${safeStart}-${safeEnd}/${total}`);
+    res.setHeader("Content-Length", safeEnd - safeStart + 1);
+    res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(item.name)}`);
+    return res.send(item.buffer.subarray(safeStart, safeEnd + 1));
+  }
+
+  res.setHeader("Content-Length", total);
+  res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(item.name)}`);
+  res.send(item.buffer);
+});
+
+// 快捷取件：分享码换文件信息（含下载 id）
+router.get("/api/share/code/:code", (req, res) => {
+  const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket.remoteAddress || "unknown";
+  const now = Date.now();
+  const hits = (queryRateMap.get(ip) || []).filter((t) => t > now - 60000);
+  if (hits.length >= QUERY_RATE_LIMIT) {
+    return res.status(429).json({ error: "查询太频繁，请稍后再试" });
+  }
+  hits.push(now);
+  queryRateMap.set(ip, hits);
+
+  const code = String(req.params.code || "").trim();
+  if (!CODE_PATTERN.test(code)) {
+    return res.status(400).json({ error: "分享码格式不正确" });
+  }
+  const item = codeFiles.get(code);
+  if (!item) {
+    return res.status(404).json({ error: "分享码不存在或已过期" });
+  }
+  if (now > item.expiresAt) {
+    codeFiles.delete(code);
+    return res.status(404).json({ error: "分享码不存在或已过期" });
+  }
+  res.json({
+    id: item.id,
+    name: item.name,
+    size: item.size,
+    expiresAt: new Date(item.expiresAt).toISOString(),
+    downloadUrl: `/share/${item.id}`,
+  });
+});
+
+export default router;

@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261103T075610999Z-23156-b71484152a38",
+  "runId": "20261103T075610999Z-23156-b71484152a38",
+  "runStatus": "inconclusive",
+  "coverage": {
+    "status": "partial",
+    "reasons": [
+      {
+        "code": "baseline_partial",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline capture had enumeration or snapshot errors",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline_partial: baseline capture had enumeration or snapshot errors",
+        "affectsCompletion": true
+      }
+    ]
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": null,
+  "diffHash": "a8aa9ba05c68bb16f1bee515ab1a5d106942df25b007c49629d7d621188da2ee",
+  "rulesVersion": "unavailable",
+  "sessionHash": "caff59f160a465b6c285c4b78d7ddca382720ecd0a22f154c2267abb116c1a99",
+  "reportRef": ".mimosa/reports/task-review-sess_9cf6b1a1-a282-4437-b92b-767b8f83ff29-20261103T075610999Z-23156-b71484152a38.json",
+  "events": [
+    {
+      "eventId": "hook-ef269c7ca1df0639ea81fab2db1abbb2",
+      "findingId": "mimosa-b363fde4ba0bc8ab16e541ba",
+      "type": "finding_blocked",
+      "at": "2026-11-03T07:34:57.886Z",
+      "identity": {
+        "projectRelativeFile": "image-gen-edits-router.js",
+        "ruleId": "security",
+        "codeEvidenceHash": "65e60f3e7a06f2c9a59e86a0da5e2a091dae0d0fe559b5bb53b2abafde7e4c07",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 15,
+      "endLine": 15,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "65e60f3e7a06f2c9a59e86a0da5e2a091dae0d0fe559b5bb53b2abafde7e4c07"
+      },
+      "sequence": 0
+    },
+    {
+      "eventId": "hook-1b3a310c1dd2f3630401bdfc9186730d",
+      "findingId": "mimosa-b363fde4ba0bc8ab16e541ba",
+      "type": "static_fix_verified",
+      "at": "2026-11-03T07:35:21.676Z",
+      "identity": {
+        "projectRelativeFile": "image-gen-edits-router.js",
+        "ruleId": "security",
+        "codeEvidenceHash": "65e60f3e7a06f2c9a59e86a0da5e2a091dae0d0fe559b5bb53b2abafde7e4c07",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 15,
+      "endLine": 15,
+      "reasonCode": "static_rescan_passed",
+      "reportedToAgent": false,
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "observed",
+        "producer": "deterministic",
+        "evidenceHash": "65e60f3e7a06f2c9a59e86a0da5e2a091dae0d0fe559b5bb53b2abafde7e4c07"
+      },
+      "sequence": 1
+    },
+    {
+      "eventId": "hook-a6b2473b659aa2384f71eef4c2062174",
+      "findingId": "mimosa-b363fde4ba0bc8ab16e541ba",
+      "type": "finding_observed",
+      "at": "2026-11-03T07:56:10.999Z",
+      "identity": {
+        "projectRelativeFile": "image-gen-edits-router.js",
+        "ruleId": "security",
+        "codeEvidenceHash": "65e60f3e7a06f2c9a59e86a0da5e2a091dae0d0fe559b5bb53b2abafde7e4c07",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 54,
+      "endLine": 54,
+      "reasonCode": "observe",
+      "reportedToAgent": false,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "65e60f3e7a06f2c9a59e86a0da5e2a091dae0d0fe559b5bb53b2abafde7e4c07"
+      },
+      "sequence": 2
+    }
+  ],
+  "observedFindingIds": [
+    "mimosa-b363fde4ba0bc8ab16e541ba",
+    "mimosa-041429dc95aee89b28c6a465",
+    "mimosa-5215177b47a91f826e92a3f3",
+    "mimosa-d4b41ac7aebe7c02a07304e8",
+    "mimosa-a00f603fcbab66dd38098e67",
+    "mimosa-5288d0ece798b48d47a56970",
+    "mimosa-4f28ffc5f629e87cca7c66b5"
+  ],
+  "verifiedFiles": [
+    {
+      "file": "image-gen-edits-client.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "image-gen-edits-router.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "server.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-11-03T07:56:11.187Z"
+}

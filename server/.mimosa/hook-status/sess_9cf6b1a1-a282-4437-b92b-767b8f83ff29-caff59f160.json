@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-11-03T08:43:53.096Z",
+  "sessionId": "sess_9cf6b1a1-a282-4437-b92b-767b8f83ff29",
+  "event": "PostToolUse",
+  "toolName": "Write",
+  "file": "/Users/leiqinghe/.zcode/v2/visualizations/6f6904d2f112959ed31bd53e498579fc3176ce4f0871dd4eb9ccdbe705ed4340/portfolio-style-drafts.html",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 2,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

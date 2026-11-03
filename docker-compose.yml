@@ -1,0 +1,35 @@
+services:
+  devtools:
+    build: .
+    container_name: devtools
+    restart: always
+    ports:
+      - "8100:80"
+    depends_on:
+      devtools-backend:
+        condition: service_healthy
+    networks:
+      - devtools-net
+
+  devtools-backend:
+    build: ./server
+    container_name: devtools-backend
+    restart: always
+    environment:
+      - IMAGE_GEN_BASE_URL=${IMAGE_GEN_BASE_URL:-}
+      - IMAGE_GEN_API_KEY=${IMAGE_GEN_API_KEY:-}
+      - IMAGE_GEN_MODEL=${IMAGE_GEN_MODEL:-gpt-image-1}
+      - IMAGE_GEN_RATE_LIMIT=${IMAGE_GEN_RATE_LIMIT:-5}
+      - IMAGE_GEN_TIMEOUT_MS=${IMAGE_GEN_TIMEOUT_MS:-300000}
+      - IMAGE_GEN_ALLOWED_HOSTS=${IMAGE_GEN_ALLOWED_HOSTS:-}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - devtools-net
+
+networks:
+  devtools-net:

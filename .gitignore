@@ -1,0 +1,16 @@
+# 依赖与构建产物
+node_modules/
+dist/
+
+# 环境变量与密钥（只从服务器/本地 .env 读取，严禁提交）
+.env
+.env.*
+*.pem
+
+# 日志与系统文件
+*.log
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/
