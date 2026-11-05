@@ -18,6 +18,11 @@
   background: #05070f;
   box-shadow: 0 18px 60px rgba(10, 30, 60, 0.45);
   isolation: isolate;
+  /* 移动端：长按不弹菜单/不选中，触摸拖动即操控 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
 }
 
 .game-shell--immersive {
@@ -54,7 +59,12 @@ body.game-immersive #chat-widget-host {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  padding: 14px 16px;
+  /* 刘海屏：避开系统安全区 */
+  padding:
+    calc(14px + env(safe-area-inset-top))
+    calc(16px + env(safe-area-inset-right))
+    calc(14px + env(safe-area-inset-bottom))
+    calc(16px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -621,12 +631,48 @@ body.game-immersive #chat-widget-host {
   font-size: 10.5px;
 }
 
+/* ---------------------------------------------------------------- 侧栏（摄像头预览等） */
+
+.game-side {
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .game-side {
+    width: 220px;
+  }
+}
+
 @media (max-width: 768px) {
   .game-shell {
     max-width: 100%;
     border-radius: 12px;
   }
+  /* 手机上侧栏转全宽，排在游戏下方 */
+  .game-side {
+    width: 100%;
+  }
   .games-hero {
     padding: 20px 18px;
+  }
+  .hud-score-value {
+    font-size: 20px;
+  }
+  .game-overlay h1 {
+    font-size: 24px;
+  }
+  .game-overlay p {
+    max-width: 100%;
+  }
+  .game-stats {
+    max-width: 100%;
+  }
+  /* 小屏上连击提示左移，避免与右侧按钮重叠 */
+  .hud-combo {
+    right: 12px;
   }
 }

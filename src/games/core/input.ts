@@ -2,7 +2,7 @@ import { idleFrame } from "../types";
 import type { ControlFrame, ControlSource, ControlSourceKind } from "../types";
 import { clamp01 } from "./math";
 
-/** 指针 / 触屏输入：鼠标按住或手指按下滑动即可玩，作为无摄像头时的兜底。 */
+/** 指针 / 触屏输入：进入即自动开火，拖动移动；鼠标右键 / 触屏双击 = 炸弹。 */
 export class PointerSource implements ControlSource {
   readonly kind: ControlSourceKind = "pointer";
   private target: HTMLElement;
@@ -11,12 +11,17 @@ export class PointerSource implements ControlSource {
   private inside = false;
   private specialFrames = 0;
   private pauseFrames = 0;
+  /** 触屏双击放炸弹的判定窗口 */
+  private lastTapTime = 0;
+  private lastTapX = 0;
+  private lastTapY = 0;
 
   constructor(target: HTMLElement) {
     this.target = target;
     target.addEventListener("pointermove", this.onMove);
     target.addEventListener("pointerdown", this.onDown);
     target.addEventListener("pointerleave", this.onLeave);
+    target.addEventListener("pointercancel", this.onLeave);
     target.addEventListener("contextmenu", this.onContextMenu);
   }
 
@@ -32,7 +37,23 @@ export class PointerSource implements ControlSource {
 
   private onDown = (e: PointerEvent) => {
     this.toLocal(e);
-    if (e.button === 2) this.specialFrames = 2;
+    if (e.button === 2) {
+      this.specialFrames = 2;
+      return;
+    }
+    if (e.pointerType === "touch") {
+      // 300ms 内近距离二次点按 = 双击 → 炸弹
+      const now = performance.now();
+      const near = Math.hypot(e.clientX - this.lastTapX, e.clientY - this.lastTapY) < 44;
+      if (now - this.lastTapTime < 300 && near) {
+        this.specialFrames = 2;
+        this.lastTapTime = 0;
+      } else {
+        this.lastTapTime = now;
+        this.lastTapX = e.clientX;
+        this.lastTapY = e.clientY;
+      }
+    }
   };
 
   private onLeave = () => {
@@ -83,6 +104,7 @@ export class PointerSource implements ControlSource {
     t.removeEventListener("pointermove", this.onMove);
     t.removeEventListener("pointerdown", this.onDown);
     t.removeEventListener("pointerleave", this.onLeave);
+    t.removeEventListener("pointercancel", this.onLeave);
     t.removeEventListener("contextmenu", this.onContextMenu);
   }
 }

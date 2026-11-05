@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Typography, message } from "antd";
-import {
+import { Button, Typography, message } from "antd";import {
   AimOutlined,
   ArrowLeftOutlined,
   ExperimentOutlined,
@@ -51,6 +50,11 @@ export default function AircraftGamePage() {
   const [stageReady, setStageReady] = useState(false);
   /** 每局的 key：变化时 GameStage 重建世界，保证「再来一局」是干净状态 */
   const [runId, setRunId] = useState(0);
+  /** 触屏设备：提示文案换成拖动/双击 */
+  const isTouch = useMemo(
+    () => typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches === true,
+    [],
+  );
 
   useEffect(() => {
     setBest(bestScore(GAME_ID));
@@ -62,6 +66,45 @@ export default function AircraftGamePage() {
     if (immersive) document.body.classList.add("game-immersive");
     else document.body.classList.remove("game-immersive");
     return () => document.body.classList.remove("game-immersive");
+  }, [immersive]);
+
+  // 移动端沉浸模式：禁双击缩放 + 屏幕常亮 + 切后台自动暂停
+  useEffect(() => {
+    if (!immersive) return undefined;
+    const meta = document.querySelector('meta[name="viewport"]');
+    const prev = meta?.getAttribute("content") ?? null;
+    meta?.setAttribute("content", `${prev ?? "width=device-width"}, maximum-scale=1, user-scalable=no`);
+
+    type WakeLockNav = Navigator & {
+      wakeLock?: { request(type: "screen"): Promise<{ release(): Promise<void> }> };
+    };
+    let lock: { release(): Promise<void> } | null = null;
+    const requestLock = async () => {
+      try {
+        if (!lock) lock = (await (navigator as WakeLockNav).wakeLock?.request("screen")) ?? null;
+      } catch {
+        // 不支持或被系统拒绝（省电模式等）就静默跳过
+      }
+    };
+    void requestLock();
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        // 切后台 / 锁屏：自动暂停，回来自动亮屏后点继续
+        setPhase((p) => (p === "playing" ? "paused" : p));
+      } else {
+        lock = null;
+        void requestLock();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      if (prev !== null) meta?.setAttribute("content", prev);
+      document.removeEventListener("visibilitychange", onVisibility);
+      void lock?.release().catch(() => undefined);
+      lock = null;
+    };
   }, [immersive]);
 
   // Esc 暂停 / 继续
@@ -254,9 +297,19 @@ export default function AircraftGamePage() {
                 </button>
               </div>
               <div className="game-hint">
-                <span>空格 / 右键 = 炸弹</span>
-                <span>方向键 / WASD = 移动</span>
-                <span>Esc = 暂停</span>
+                {isTouch ? (
+                  <>
+                    <span>拖动屏幕 = 移动（自动开火）</span>
+                    <span>双击 = 炸弹</span>
+                    <span>点 ❚❚ = 暂停</span>
+                  </>
+                ) : (
+                  <>
+                    <span>空格 / 右键 = 炸弹</span>
+                    <span>方向键 / WASD = 移动</span>
+                    <span>Esc = 暂停</span>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -368,7 +421,7 @@ export default function AircraftGamePage() {
         </div>
 
         {!immersive && (
-          <div style={{ width: 250, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="game-side">
             <div
               style={{
                 background: "#fff",
@@ -380,7 +433,7 @@ export default function AircraftGamePage() {
               <Typography.Text strong style={{ fontSize: 13 }}>
                 摄像头预览
               </Typography.Text>
-              <div style={{ marginTop: 8 }}>
+              <div style={{ marginTop: 8, maxWidth: 260, marginLeft: "auto", marginRight: "auto" }}>
                 {gesture.video ? (
                   <CameraStage
                     video={gesture.video}
