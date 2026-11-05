@@ -27,6 +27,7 @@ import {
   ColumnWidthOutlined,
   CloudUploadOutlined,
   RobotOutlined,
+  AudioOutlined,
 } from "@ant-design/icons";
 
 export interface ToolItem {
@@ -104,6 +105,12 @@ export const toolGroups: CategoryGroup[] = [
       { path: "/date-calc", Icon: CalendarOutlined, title: "日期计算器", desc: "日期差值、N天后日期、工作日计算" },
       { path: "/unit-convert", Icon: ColumnWidthOutlined, title: "单位换算", desc: "长度/重量/温度/面积/体积换算" },
       { path: "/id-card-parse", Icon: IdcardOutlined, title: "身份证信息提取", desc: "解析身份证号的省份/生日/性别" },
+    ],
+  },
+  {
+    name: "音频工具",
+    tools: [
+      { path: "/tts-gen", Icon: AudioOutlined, title: "AI 文字转语音", desc: "输入文本生成语音，多角色自动切换音色" },
     ],
   },
   {

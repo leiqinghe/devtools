@@ -22,6 +22,12 @@ services:
       - IMAGE_GEN_RATE_LIMIT=${IMAGE_GEN_RATE_LIMIT:-5}
       - IMAGE_GEN_TIMEOUT_MS=${IMAGE_GEN_TIMEOUT_MS:-300000}
       - IMAGE_GEN_ALLOWED_HOSTS=${IMAGE_GEN_ALLOWED_HOSTS:-}
+      - TTS_BASE_URL=${TTS_BASE_URL:-https://api.xiaomimimo.com/v1}
+      - TTS_API_KEY=${TTS_API_KEY:-}
+      - TTS_MODEL=${TTS_MODEL:-mimo-v2.5-tts}
+      - TTS_RATE_LIMIT=${TTS_RATE_LIMIT:-5}
+      - TTS_TIMEOUT_MS=${TTS_TIMEOUT_MS:-120000}
+      - TTS_ALLOWED_HOSTS=${TTS_ALLOWED_HOSTS:-}
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/',()=>process.exit(0)).on('error',()=>process.exit(1))"]
       interval: 5s

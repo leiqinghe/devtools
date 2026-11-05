@@ -3,6 +3,7 @@ import multer from "multer";
 import crypto from "crypto";
 import imageGenRouter from "./image-gen-router.js";
 import imageGenEditsRouter from "./image-gen-edits-router.js";
+import ttsRouter from "./tts-router.js";
 import shareCodeRouter from "./share-code-router.js";
 
 const app = express();
@@ -24,6 +25,8 @@ app.use(express.json({ limit: "64kb" }));
 app.use(imageGenRouter);
 // 图生图（images/edits 转发，见 image-gen-edits-router.js）
 app.use(imageGenEditsRouter);
+// AI 文字转语音（chat.completions TTS，见 tts-router.js）
+app.use(ttsRouter);
 // 文件分享 + 快捷分享码（必须挂在下方原 /api/share/upload 之前，见 share-code-router.js）
 app.use(shareCodeRouter);
 

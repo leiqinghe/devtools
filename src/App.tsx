@@ -35,6 +35,7 @@ const UnitConvert = lazy(() => import("./pages/tools/UnitConvert"));
 const IdCardParse = lazy(() => import("./pages/tools/IdCardParse"));
 const FileShare = lazy(() => import("./pages/tools/FileShare"));
 const ImageGen = lazy(() => import("./pages/tools/ImageGen"));
+const TtsGen = lazy(() => import("./pages/tools/TtsGen"));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
@@ -86,6 +87,7 @@ export default function App() {
         <Route path="/unit-convert" element={<LazyLoad><UnitConvert /></LazyLoad>} />
         <Route path="/id-card-parse" element={<LazyLoad><IdCardParse /></LazyLoad>} />
         <Route path="/file-share" element={<LazyLoad><FileShare /></LazyLoad>} />
+        <Route path="/tts-gen" element={<LazyLoad><TtsGen /></LazyLoad>} />
       </Route>
     </Routes>
   );

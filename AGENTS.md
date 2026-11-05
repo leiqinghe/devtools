@@ -5,7 +5,7 @@
 ## 项目概述
 
 **DevTools 开发者在线工具集**：纯前端工具 + 轻量后端的单页应用。
-- 线上地址：http://101.201.56.200:8100/
+- 线上地址：https://tools.leiqinghe.cloud/（备用：http://101.201.56.200:8100/）
 - 服务器代码：`101.201.56.200:/opt/devtools`（ssh 免密直连，`~/.ssh/config` 已配置）
 - 本地开发副本：`~/Documents/code/leiqinghe/devtools`
 - **无 git 仓库**，部署靠 rsync + docker compose
@@ -13,11 +13,13 @@
 ## 架构与部署
 
 ```
-浏览器 → 101.201.56.200:8100 → docker[devtools]  (nginx:80, 静态资源 + 反代)
+浏览器 → https://tools.leiqinghe.cloud (443, 宿主机 nginx TLS 终结 + 反代)
+       → 127.0.0.1:8100 → docker[devtools]  (nginx:80, 静态资源 + 反代)
                                    ├── /            → /usr/share/nginx/html (vite build 产物)
                                    ├── /api/image-gen → docker[devtools-backend]:3000 (超时320s)
                                    ├── /api/share    → devtools-backend:3000
                                    └── /share/       → devtools-backend:3000
+备用入口：http://101.201.56.200:8100/（宿主机端口直连容器，绕过域名）
 ```
 
 - **前端**：React 18 + antd 5 + TypeScript + Vite 5，路由 react-router 6，全部工具页懒加载
@@ -104,6 +106,8 @@ cd <仓库目录> && git add -A && git commit -m "..." && git push
 | `server/image-gen-client.js` | OpenAI 兼容 images API 客户端（JSON 转发/解析 b64） |
 | `server/image-gen-edits-router.js` | 图生图路由（multer 收图 1~4 张，≤10MB/张，PNG/JPG/WebP） |
 | `server/image-gen-edits-client.js` | images/edits 客户端（FormData multipart 转发） |
+| `server/tts-router.js` | AI 文生语音路由（分段校验/限流/pcm16 合并 + WAV 封装） |
+| `server/tts-client.js` | MiMo TTS 客户端（chat.completions，文本放 assistant 角色） |
 | `server/share-code-router.js` | 文件分享 + 快捷分享码（**接管** /api/share/upload 与 /share/:id，挂载在 server.js 原路由之前） |
 | `server/url-guard.js` | 出站安全守卫：协议/host 白名单/私网保留段/DNS 预解析/禁重定向 |
 | `nginx.conf` | 反代规则；生图接口 `proxy_read_timeout 320s` |
@@ -129,6 +133,16 @@ cd <仓库目录> && git add -A && git commit -m "..." && git push
 - 改密钥/模型：改服务器 `.env` 后 `docker compose up -d` 即可（无需 rebuild）
 - **gpt-image 系列不要传 `response_format`**（会报错，固定返回 b64）；只有 dall-e 系列才传（client 里已处理）
 - Logo：`public/favicon.png`（512px，AI 生成）+ 顶栏 `MainLayout.tsx` 的 `<img src="/favicon.png">`；旧 `favicon.svg` 保留可回滚，`index.html` link 已指向 png
+
+## AI 文字转语音模块（/tts-gen）要点
+
+- API：小米 MiMo `https://api.xiaomimimo.com/v1/chat/completions`（OpenAI 兼容），模型 `mimo-v2.5-tts`（限时免费）；**待合成文本必须放 `role:"assistant"` 的消息**，`audio: { format: "pcm16", voice }`，响应音频在 `choices[0].message.audio.data`（base64）
+- **单次调用只能一个音色** → 多角色方案：前端按行解析对话体（`角色：内容` / `【角色】内容`，无前缀归旁白）→ 每角色自动分配音色（旁白=茉莉，其余按首次出现顺序取 苏打/冰糖/白桦/Mia/Chloe/Milo/Dean，可手动改）→ 后端逐段合成 pcm16（24kHz 单声道，并发 3 保序）→ 裸 PCM 拼接后包 44 字节标准 WAV 头，返回单段 base64
+- 前置校验顺序：配置检查(503) → IP 限流(429) → 入参校验(400) → 上游(401 映射 502 带详情/EGUARD 503/超时 504)
+- 限制：≤30 段、单段 ≤500 字（前端 480 切句）、限流默认 5 次/分/IP
+- env 清单（服务器 `.env`，`TTS_BASE_URL`/`TTS_MODEL` 代码内有默认值可不配）：`TTS_API_KEY`（必配）、`TTS_BASE_URL`、`TTS_MODEL`、`TTS_RATE_LIMIT`、`TTS_TIMEOUT_MS`、`TTS_ALLOWED_HOSTS`(可选)
+- **坑**：`TTS_BASE_URL` 默认值要在 router 代码里给（不能只在 compose 配），否则本地裸跑永远 503；并发池 worker 失败后其他段不落盘会产生稀疏数组，`Buffer.concat` 遇洞报 ERR_INVALID_ARG_TYPE——必须在 concat 前检查 failure
+- 音色：冰糖/茉莉（中文女）、苏打/白桦（中文男）、Mia/Chloe（英文女）、Milo/Dean（英文男）；唱歌模式在文本开头加 `(唱歌)` 标签
 
 ## 文件分享快捷码要点
 
@@ -170,6 +184,12 @@ curl -s http://101.201.56.200:8100/assets/index-*.js | grep -ci "sk-\|api_key"
 - 预览通道：`npm run build -- --base=/preview/` → rsync 到 `/var/www/preview/` → https://leiqinghe.cloud/preview（迭代新版本时先发预览再替换主站）
 - 工程要点（踩坑记录）：① Tailwind v4 默认 OKLCH 颜色旧内核不渲染，`index.css` 已用 `@theme` 全量覆盖为 hex；② 动画不用 framer-motion（旧内核 GPU 合成层渲染 bug），改纯 CSS 动画 + IntersectionObserver（`useReveal`）；③ public 资产引用要用 `import.meta.env.BASE_URL` 拼接（子路径构建时 Vite 不改写 public 引用）；④ 动画元素与 hover 交互元素拆两层，避免 transition/transform 冲突；⑤ 换站后旧访客可能命中浏览器缓存看到旧版，强刷（Cmd+Shift+R）即可
 - 项目卡片/图标：`public/assets/icons/`（AI 生图生成的统一 3D 蓝紫风格）；首屏焦点截图 `public/assets/devtools-hero.png`
+
+**工具站子域名**（tools.leiqinghe.cloud，2026-11-03 配置）：
+- DNS：阿里云云解析（hichina.com）A 记录 `tools` → `101.201.56.200`。**坑：该记录两个月前加过但处于停用状态**，权威 DNS 返回 NXDOMAIN；控制台「解析记录列表」里重新启用即可，排查时用 `dig @dns31.hichina.com` 查权威应答（本地 resolver 有 600s 负缓存，curl 报 Could not resolve host 时先用 `--resolve` 绕过）
+- 宿主机 nginx：`/etc/nginx/sites-enabled/tools`（软链 sites-available/tools），80 = ACME + 301，443 = TLS 终结 + `proxy_pass http://127.0.0.1:8100`，带 `client_max_body_size 500m` 和 `proxy_read/send_timeout 320s`（**外层不配 320s 会把生图长请求在 60s 掐断**，容器内配了也没用）
+- 证书：Let's Encrypt ECDSA，`/etc/letsencrypt/live/tools.leiqinghe.cloud/`，至 2027-02-01；续期走全局 `certbot-renew.timer` + `renewal-hooks/deploy/reload-nginx.sh`（对新增证书自动生效，无需额外配置）；签发方式 `certbot certonly --webroot -w /var/www/html -d tools.leiqinghe.cloud`
+- 验收基线：http 301→https；https 首页 200（title 含 DevTools）；`/api/share/nonexistent` 404（与直连 8100 行为一致）
 
 ### certbot 排障备忘
 - Ubuntu 20.04 apt 版 certbot 0.40 依赖损坏勿修，直接 `pip3 install certbot certbot-nginx`（阿里云 PyPI 镜像 `-i https://mirrors.aliyun.com/pypi/simple/`；清华镜像 wheel 会 403）
