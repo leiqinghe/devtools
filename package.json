@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync:tools": "node scripts/sync-tool-catalog.mjs",
+    "test:chat": "node scripts/xss-check.cjs && node scripts/logic-check.cjs"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.1",

@@ -6,6 +6,7 @@ import imageGenEditsRouter from "./image-gen-edits-router.js";
 import ttsRouter from "./tts-router.js";
 import shareCodeRouter from "./share-code-router.js";
 import chatRouter from "./chat-router.js";
+import corsRouter from "./cors-router.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,6 +22,9 @@ const upload = multer({
 });
 
 app.use(express.json({ limit: "64kb" }));
+
+// 跨域中间件（必须在业务路由之前，见 cors-router.js）
+app.use(corsRouter());
 
 // AI 图片生成模块（配置与出站校验见 image-gen-router.js）
 app.use(imageGenRouter);

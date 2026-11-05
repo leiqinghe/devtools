@@ -164,6 +164,18 @@ cd <仓库目录> && git add -A && git commit -m "..." && git push
 - 知识库 Phase 2 接缝：`chat-router.js` 的 `buildMessages()`；文档少直接扩系统提示词，多了走 embeddings + 本地向量检索（`knowledge-index.json`，零新服务）
 - 部署顺序：**必须先 devtools 后 portfolio**（widget 从 tools 域名加载）；头像 `public/chat-avatar.png`（256px，站内 /image-gen 生成，3D 蓝紫风格与 portfolio 图标统一）
 
+### 对话机器人的丰富功能层（2026-11-05 二版）
+
+- **富文本渲染**：`renderMarkdown()` 支持标题/粗斜体/行内码/围栏代码块（带复制按钮）/有序无序列表/引用/表格/分隔线。**安全模型：先 `esc()` 全量转义，再对转义结果做受限 markdown 替换**——LLM 输出中的 `<img onerror>` 只会变成可见文本，永远不会生成真实 DOM。链接放行规则见 `isSafeHref()`：仅 `http`/`https` 与站内相对路径，`javascript:`/`data:`/`//` 协议相对一律拦截。改动渲染器后**必须跑 `node scripts/xss-check.cjs`**（13 项断言）
+- **工具卡片协议（前后端解耦关键）**：`server/chat-tools.js` 内置 32 个工具清单，`buildToolCatalogPrompt()` 拼进系统提示词并指示模型用 `[工具名](/path)` 格式引用；widget 的 `upgradeToolLinks()` 只识别「href 以 `/` 开头且形如 `/slug`」的链接并升级成卡片。**新增工具时只需重跑 `scripts/sync-tool-catalog.mjs` 更新清单，widget 完全不用改**；跨域站用 `data-tools-base` 补全跳转前缀
+- **工具元数据接口**：`GET /api/chat/tools` 返回 `{tools:[{path,title,desc}]}`（Cache-Control 1h），widget 启动时拉一次填卡片副标题；失败不影响主流程
+- **CORS 独立中间件**：`server/cors-router.js` 对 `/api/tts`、`/api/chat` 统一设头（白名单复用 `CHAT_ALLOWED_ORIGINS`），**必须挂在业务路由之前**。这样 portfolio 跨域调 TTS 朗读才通，且不需要改既有的 `tts-router.js`
+- **语音朗读**：assistant 消息 → `POST /api/tts`（`{segments:[{text,mode:"preset",voice}]}`）→ `data:audio/wav;base64,` 塞 `<audio>`。文本 >1500 字自动截断（`MAX_TTS_CHARS`）；TTS 独立限流 5 次/分/IP，与 chat 的 10 次/分是两套计数，同时用会更快撞 429
+- **多会话持久化**：`localStorage["devtools-chat-sessions"]`，结构 `{version, activeId, sessions:[{id,title,createdAt,updatedAt,messages:[{role,content,ts}]}]}`；上限 20 会话 / 单会话 100 条 / 序列化 2MB，超限淘汰 `updatedAt` 最旧的；`localStorage` 抛异常（隐私模式/配额满）时静默降级到内存（`memoryStore`），功能不中断
+- **会话 ID**：优先 `crypto.randomUUID()`，老浏览器降级为「时间戳+单调计数器」（早期版本用双 `Date.now()`，同毫秒会撞 ID，已修）
+- **回归测试**：`node scripts/logic-check.cjs`（17 项：会话 sanitize/容量淘汰/降级/标题推导）+ `node scripts/xss-check.cjs`（13 项 XSS）。两者都是纯 Node 脚本，CI 可直接跑
+- **UI 细节**：用户上翻时停止自动滚底并显示「↓ 回到底部」浮标；流式渲染用 `requestAnimationFrame` 节流避免每 token 重排；`prefers-reduced-motion` 下动画全关
+
 ## 文件分享快捷码要点
 
 - 上传可选 `code` 字段（3~12 位字母数字），冲突返回 409；查询 `GET /api/share/code/:code`（限流 20 次/分/IP）换 `downloadUrl`

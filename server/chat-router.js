@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { validateOutboundUrl } from "./url-guard.js";
 import { streamChatCompletion, UpstreamError } from "./chat-client.js";
+import { buildToolCatalogPrompt, getToolMeta } from "./chat-tools.js";
 
 const router = Router();
 
@@ -59,8 +60,21 @@ const SYSTEM_PROMPT = (process.env.CHAT_SYSTEM_PROMPT || "").trim() || DEFAULT_S
 // 用括号访问而非 Map.get（历史扫描误判模式，见 AGENTS.md 经验教训）。
 const chatRateStore = Object.create(null);
 
-router.options("/api/chat", (req, res) => {
+// 工具元数据：widget 启动时拉取一次，用于渲染工具卡片副标题（静态数据，无限流）
+router.get("/api/chat/tools", (req, res) => {
   const origin = req.headers.origin;
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return res.status(403).json({ error: "来源不被允许" });
+  }
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  return res.json({ tools: getToolMeta() });
+});
+
+router.options("/api/chat", (req, res) => {  const origin = req.headers.origin;
   if (origin && !ALLOWED_ORIGINS.includes(origin)) {
     return res.status(403).json({ error: "来源不被允许" });
   }
@@ -215,7 +229,8 @@ router.post("/api/chat", async (req, res) => {
 
 // 系统提示词 + 用户对话。Phase 2 知识库检索结果在此拼进 system 内容。
 function buildMessages(userMessages) {
-  return [{ role: "system", content: SYSTEM_PROMPT }, ...userMessages];
+  const system = SYSTEM_PROMPT + "\n\n" + buildToolCatalogPrompt();
+  return [{ role: "system", content: system }, ...userMessages];
 }
 
 export default router;
