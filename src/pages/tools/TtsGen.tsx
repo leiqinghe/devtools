@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  AutoComplete,
   Button,
   Card,
   Select,
@@ -32,6 +33,30 @@ const MAX_SEGMENTS = 30;
 const MAX_SEGMENT_LENGTH = 480;
 const TAG_COLORS = ["blue", "green", "orange", "purple", "cyan", "magenta", "gold", "volcano"];
 
+const EMOTION_OPTIONS = [
+  { value: "开心", label: "开心（基础情绪）" },
+  { value: "悲伤", label: "悲伤（基础情绪）" },
+  { value: "愤怒", label: "愤怒（基础情绪）" },
+  { value: "惊讶", label: "惊讶（基础情绪）" },
+  { value: "兴奋", label: "兴奋（基础情绪）" },
+  { value: "委屈", label: "委屈（基础情绪）" },
+  { value: "平静", label: "平静（基础情绪）" },
+  { value: "无奈", label: "无奈（复合情绪）" },
+  { value: "欣慰", label: "欣慰（复合情绪）" },
+  { value: "愧疚", label: "愧疚（复合情绪）" },
+  { value: "释然", label: "释然（复合情绪）" },
+  { value: "忐忑", label: "忐忑（复合情绪）" },
+  { value: "温柔", label: "温柔（整体语调）" },
+  { value: "高冷", label: "高冷（整体语调）" },
+  { value: "活泼", label: "活泼（整体语调）" },
+  { value: "慵懒", label: "慵懒（整体语调）" },
+  { value: "俏皮", label: "俏皮（整体语调）" },
+  { value: "深沉", label: "深沉（整体语调）" },
+  { value: "磁性", label: "磁性（音色定位）" },
+  { value: "醇厚", label: "醇厚（音色定位）" },
+  { value: "沙哑", label: "沙哑（音色定位）" },
+];
+
 const EXAMPLE_TEXT = `旁白：夜色渐深，城市的霓虹开始闪烁。
 小明：今天加了一天班，累死了。
 小红：那快回去休息吧，别熬坏了身体。
@@ -50,6 +75,7 @@ interface ParseResult {
 interface TtsSegment {
   text: string;
   voice: string;
+  style: string;
 }
 
 interface TtsResult {
@@ -128,6 +154,7 @@ function defaultVoiceFor(role: string, roleOrder: string[]): string {
 export default function TtsGen() {
   const [text, setText] = useState("");
   const [voiceOverrides, setVoiceOverrides] = useState<Record<string, string>>({});
+  const [styleOverrides, setStyleOverrides] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
@@ -137,13 +164,17 @@ export default function TtsGen() {
   const parsed = useMemo(() => parseDialogue(text), [text]);
   const overLimit = parsed.segments.length > MAX_SEGMENTS;
 
+  const voiceFor = (role: string) =>
+    voiceOverrides[role] ?? defaultVoiceFor(role, parsed.roleOrder);
+
   const effectiveSegments: TtsSegment[] = useMemo(
     () =>
       parsed.segments.map((seg) => ({
         text: seg.text,
         voice: voiceOverrides[seg.role] ?? defaultVoiceFor(seg.role, parsed.roleOrder),
+        style: (styleOverrides[seg.role] || "").trim(),
       })),
-    [parsed, voiceOverrides]
+    [parsed, voiceOverrides, styleOverrides]
   );
 
   useEffect(() => {
@@ -212,6 +243,10 @@ export default function TtsGen() {
     setVoiceOverrides((prev) => ({ ...prev, [role]: voice }));
   };
 
+  const changeStyle = (role: string, style: string) => {
+    setStyleOverrides((prev) => ({ ...prev, [role]: style }));
+  };
+
   return (
     <Card title="AI 文字转语音" style={{ maxWidth: 1000, margin: "0 auto" }}>
       <Space direction="vertical" style={{ width: "100%" }} size="middle">
@@ -244,11 +279,45 @@ export default function TtsGen() {
           </Space>
         </div>
 
+        {parsed.roleOrder.length > 0 && (
+          <Card type="inner" size="small" title={`角色配置（${parsed.roleOrder.length} 个角色）`}>
+            <Space direction="vertical" style={{ width: "100%" }} size="small">
+              {parsed.roleOrder.map((role) => (
+                <div key={role} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <Tag color={TAG_COLORS[parsed.roleOrder.indexOf(role) % TAG_COLORS.length]} style={{ minWidth: 72, textAlign: "center", marginTop: 0 }}>
+                    {role}
+                  </Tag>
+                  <Select
+                    value={voiceFor(role)}
+                    onChange={(v) => changeVoice(role, v)}
+                    options={VOICE_OPTIONS}
+                    style={{ width: 150 }}
+                    disabled={loading}
+                  />
+                  <AutoComplete
+                    value={styleOverrides[role] || ""}
+                    onChange={(v) => changeStyle(role, v)}
+                    options={EMOTION_OPTIONS}
+                    filterOption={(input, option) => (option?.value as string).includes(input)}
+                    placeholder="情感指令（可选）：如疲惫低沉、语速慢，带着无奈"
+                    maxLength={200}
+                    disabled={loading}
+                    style={{ flex: 1 }}
+                  />
+                </div>
+              ))}
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                情感支持自然语言描述（不会读出指令本身）；也可在正文里内嵌标签：段首 (开心)（慵懒）[东北话]，句间任意位置 (呼吸) (长叹一口气) (提高音量喊话) (紧张，深呼吸)
+              </Text>
+            </Space>
+          </Card>
+        )}
+
         {parsed.segments.length > 0 && (
           <Card
             type="inner"
             size="small"
-            title={`分段预览（${parsed.segments.length} 段 · ${parsed.roleOrder.length} 个角色）`}
+            title={`分段预览（${parsed.segments.length} 段）`}
           >
             {overLimit && (
               <Alert
@@ -264,14 +333,6 @@ export default function TtsGen() {
                   <Tag color={TAG_COLORS[parsed.roleOrder.indexOf(seg.role) % TAG_COLORS.length]} style={{ minWidth: 72, textAlign: "center", marginTop: 4 }}>
                     {seg.role}
                   </Tag>
-                  <Select
-                    value={effectiveSegments[i].voice}
-                    onChange={(v) => changeVoice(seg.role, v)}
-                    options={VOICE_OPTIONS}
-                    size="small"
-                    style={{ width: 150, marginTop: 2 }}
-                    disabled={loading}
-                  />
                   <Paragraph style={{ margin: 0, flex: 1, fontSize: 13, color: "#666" }}>
                     {seg.text}
                   </Paragraph>

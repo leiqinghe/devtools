@@ -16,7 +16,14 @@ export class UpstreamError extends Error {
   }
 }
 
-export async function synthesizeSegment({ baseUrl, allowedHosts, apiKey, model, text, voice, timeoutMs }) {
+export async function synthesizeSegment({ baseUrl, allowedHosts, apiKey, model, text, voice, style, timeoutMs }) {
+  // 风格指令放 user 消息（仅控制语气，不会被合成进语音）；目标文本必须在 assistant 消息
+  const messages = [];
+  if (style) {
+    messages.push({ role: "user", content: style });
+  }
+  messages.push({ role: "assistant", content: text });
+
   const upstream = await guardPostJson(`${baseUrl}/chat/completions`, {
     allowedHosts,
     timeoutMs: timeoutMs || 120000,
@@ -26,7 +33,7 @@ export async function synthesizeSegment({ baseUrl, allowedHosts, apiKey, model, 
     },
     payload: {
       model,
-      messages: [{ role: "assistant", content: text }],
+      messages,
       audio: { format: "pcm16", voice },
     },
   });

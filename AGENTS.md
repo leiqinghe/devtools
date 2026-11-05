@@ -138,6 +138,7 @@ cd <仓库目录> && git add -A && git commit -m "..." && git push
 
 - API：小米 MiMo `https://api.xiaomimimo.com/v1/chat/completions`（OpenAI 兼容），模型 `mimo-v2.5-tts`（限时免费）；**待合成文本必须放 `role:"assistant"` 的消息**，`audio: { format: "pcm16", voice }`，响应音频在 `choices[0].message.audio.data`（base64）
 - **单次调用只能一个音色** → 多角色方案：前端按行解析对话体（`角色：内容` / `【角色】内容`，无前缀归旁白）→ 每角色自动分配音色（旁白=茉莉，其余按首次出现顺序取 苏打/冰糖/白桦/Mia/Chloe/Milo/Dean，可手动改）→ 后端逐段合成 pcm16（24kHz 单声道，并发 3 保序）→ 裸 PCM 拼接后包 44 字节标准 WAV 头，返回单段 base64
+- **情感/风格控制（无独立参数，实测有效）**：① 每角色「情感指令」走 `role:"user"` 消息（不会被读出，仅控制语气；自然语言如「疲惫低沉，语速缓慢」，实测同样文本平读 5s vs 指令版 7.4s）；② 文本内嵌标签：段首 `(开心)（慵懒）[东北话]`，句间 `(呼吸)` `(长叹一口气)` `(提高音量喊话)` `(紧张，深呼吸)`；③ API 单次调用只一个风格，多情绪转场需在文本内用标签切换；后端 style 字段 ≤200 字，空则不传 user 消息
 - 前置校验顺序：配置检查(503) → IP 限流(429) → 入参校验(400) → 上游(401 映射 502 带详情/EGUARD 503/超时 504)
 - 限制：≤30 段、单段 ≤500 字（前端 480 切句）、限流默认 5 次/分/IP
 - env 清单（服务器 `.env`，`TTS_BASE_URL`/`TTS_MODEL` 代码内有默认值可不配）：`TTS_API_KEY`（必配）、`TTS_BASE_URL`、`TTS_MODEL`、`TTS_RATE_LIMIT`、`TTS_TIMEOUT_MS`、`TTS_ALLOWED_HOSTS`(可选)

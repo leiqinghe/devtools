@@ -13,6 +13,7 @@ const TTS_RATE_LIMIT = Math.max(1, parseInt(process.env.TTS_RATE_LIMIT || "5", 1
 const TTS_TIMEOUT_MS = Math.max(30000, parseInt(process.env.TTS_TIMEOUT_MS || "120000", 10));
 const MAX_SEGMENTS = 30;
 const MAX_SEGMENT_LENGTH = 500;
+const MAX_STYLE_LENGTH = 200;
 const PCM_SAMPLE_RATE = 24000;
 const SYNTH_CONCURRENCY = 3;
 
@@ -83,7 +84,11 @@ function parseSegments(rawSegments) {
     if (text.length > MAX_SEGMENT_LENGTH) {
       return { error: `单段文本不能超过 ${MAX_SEGMENT_LENGTH} 字` };
     }
-    segments.push({ text, voice });
+    const style = typeof seg?.style === "string" ? seg.style.trim() : "";
+    if (style.length > MAX_STYLE_LENGTH) {
+      return { error: `情感指令不能超过 ${MAX_STYLE_LENGTH} 字` };
+    }
+    segments.push({ text, voice, style });
   }
   return { segments };
 }
@@ -104,6 +109,7 @@ async function synthesizeOrdered(segments) {
           model: TTS_MODEL,
           text: segments[index].text,
           voice: segments[index].voice,
+          style: segments[index].style || undefined,
           timeoutMs: TTS_TIMEOUT_MS,
         });
         results[index] = Buffer.from(b64Pcm, "base64");
