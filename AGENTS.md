@@ -136,14 +136,17 @@ cd <仓库目录> && git add -A && git commit -m "..." && git push
 
 ## AI 文字转语音模块（/tts-gen）要点
 
-- API：小米 MiMo `https://api.xiaomimimo.com/v1/chat/completions`（OpenAI 兼容），模型 `mimo-v2.5-tts`（限时免费）；**待合成文本必须放 `role:"assistant"` 的消息**，`audio: { format: "pcm16", voice }`，响应音频在 `choices[0].message.audio.data`（base64）
-- **单次调用只能一个音色** → 多角色方案：前端按行解析对话体（`角色：内容` / `【角色】内容`，无前缀归旁白）→ 每角色自动分配音色（旁白=茉莉，其余按首次出现顺序取 苏打/冰糖/白桦/Mia/Chloe/Milo/Dean，可手动改）→ 后端逐段合成 pcm16（24kHz 单声道，并发 3 保序）→ 裸 PCM 拼接后包 44 字节标准 WAV 头，返回单段 base64
+- API：小米 MiMo `https://api.xiaomimimo.com/v1/chat/completions`（OpenAI 兼容），三模式：`mimo-v2.5-tts`（预置音色）/ `mimo-v2.5-tts-voicedesign`（音色描述生成）/ `mimo-v2.5-tts-voiceclone`（参考音频复刻），限时免费；**待合成文本必须放 `role:"assistant"` 的消息**，响应音频在 `choices[0].message.audio.data`（base64）。文档页有「V2.5 系列已下线」提示但 API 实测可用（2026-11-05）；模型名可用 env 覆盖（为 V2.6 留口）
+- **三模式 payload**：preset=`{format:"pcm16", voice:音色名}`；design=无 voice 字段、user=音色描述(+情感)，format=wav；clone=`{format:"wav", voice:"data:audio/<mime>;base64,..."}`、user=情感指令或空串。design/clone 段返回 WAV → `parseWavToPcm` 解出裸 PCM+采样率再拼接（preset 走 pcm16 直拼）；采样率取实际解析值（实测 24kHz）
+- **单次调用只能一个音色** → 多角色方案：前端按行解析对话体（`角色：内容` / `【角色】内容`，无前缀归旁白）→ 每角色自动分配音色（旁白=茉莉，其余按首次出现顺序取 苏打/冰糖/白桦/Mia/Chloe/Milo/Dean，可手动改）→ 后端逐段合成（并发 3 保序）→ 裸 PCM 拼接 + WAV 头，返回单段 base64
 - **情感/风格控制（无独立参数，实测有效）**：① 每角色「情感指令」走 `role:"user"` 消息（不会被读出，仅控制语气；自然语言如「疲惫低沉，语速缓慢」，实测同样文本平读 5s vs 指令版 7.4s）；② 文本内嵌标签：段首 `(开心)（慵懒）[东北话]`，句间 `(呼吸)` `(长叹一口气)` `(提高音量喊话)` `(紧张，深呼吸)`；③ API 单次调用只一个风格，多情绪转场需在文本内用标签切换；后端 style 字段 ≤200 字，空则不传 user 消息
-- 前置校验顺序：配置检查(503) → IP 限流(429) → 入参校验(400) → 上游(401 映射 502 带详情/EGUARD 503/超时 504)
-- 限制：≤30 段、单段 ≤500 字（前端 480 切句）、限流默认 5 次/分/IP
-- env 清单（服务器 `.env`，`TTS_BASE_URL`/`TTS_MODEL` 代码内有默认值可不配）：`TTS_API_KEY`（必配）、`TTS_BASE_URL`、`TTS_MODEL`、`TTS_RATE_LIMIT`、`TTS_TIMEOUT_MS`、`TTS_ALLOWED_HOSTS`(可选)
+- **音色复刻**：参考音频 mp3/wav ≤10MB（b64 后），数秒即可，**无音色注册机制、每次请求都要带**；前端走 multipart（字段 `segments`=JSON 字符串 + `ref_<roleIndex>`=文件），multer 对非 multipart 请求是 no-op 所以单路由兼容三种提交；后端按字段名映射（`fieldname.startsWith("ref_")`，**别用 .exec() 正则——会被 Mimosa 判命令注入拦截**）
+- **上游限流实测**：免费档并发/频率低，连续多段请求易 429 → `synthesizeOrdered` worker 对上游 429/5xx 退避 15s 重试一次（401/4xx 不重试）；nginx/后端超时预算充足（320s/120s×重试）
+- 前置校验顺序：配置检查(503) → IP 限流(429) → 入参校验(400，含 clone 缺文件/design 缺描述/voice 白名单仅 preset) → 上游(401 映射 502 带详情/EGUARD 503/超时 504)
+- 限制：≤30 段、单段 ≤500 字（前端 480 切句）、情感指令 ≤200 字、音色描述 ≤300 字、限流默认 5 次/分/IP
+- env 清单（服务器 `.env`，代码均有默认值，`TTS_API_KEY` 必配）：`TTS_BASE_URL`、`TTS_MODEL`、`TTS_MODEL_DESIGN`、`TTS_MODEL_CLONE`、`TTS_RATE_LIMIT`、`TTS_TIMEOUT_MS`、`TTS_ALLOWED_HOSTS`(可选)
 - **坑**：`TTS_BASE_URL` 默认值要在 router 代码里给（不能只在 compose 配），否则本地裸跑永远 503；并发池 worker 失败后其他段不落盘会产生稀疏数组，`Buffer.concat` 遇洞报 ERR_INVALID_ARG_TYPE——必须在 concat 前检查 failure
-- 音色：冰糖/茉莉（中文女）、苏打/白桦（中文男）、Mia/Chloe（英文女）、Milo/Dean（英文男）；唱歌模式在文本开头加 `(唱歌)` 标签
+- 音色：冰糖/茉莉（中文女）、苏打/白桦（中文男）、Mia/Chloe（英文女）、Milo/Dean（英文男）；唱歌模式/内嵌标签仅基础模型支持；复刻示例音频 `public/tts-sample/voice-ref-sample.wav`（苏打合成，随站点分发，前端示例一键载入）
 
 ## 文件分享快捷码要点
 

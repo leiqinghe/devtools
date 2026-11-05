@@ -4,14 +4,16 @@ import {
   AutoComplete,
   Button,
   Card,
+  Segmented,
   Select,
   Space,
   Tag,
   Typography,
   Input,
+  Upload,
   message,
 } from "antd";
-import { AudioOutlined, DownloadOutlined, SendOutlined } from "@ant-design/icons";
+import { AudioOutlined, DownloadOutlined, SendOutlined, UploadOutlined } from "@ant-design/icons";
 
 const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -32,6 +34,39 @@ const ROLE_VOICE_POOL = ["苏打", "冰糖", "白桦", "Mia", "Chloe", "Milo", "
 const MAX_SEGMENTS = 30;
 const MAX_SEGMENT_LENGTH = 480;
 const TAG_COLORS = ["blue", "green", "orange", "purple", "cyan", "magenta", "gold", "volcano"];
+
+type TtsMode = "preset" | "design" | "clone";
+
+const MODE_OPTIONS = [
+  { label: "🎙 预置音色", value: "preset" },
+  { label: "🎨 音色设计", value: "design" },
+  { label: "🧬 音色复刻", value: "clone" },
+];
+
+const DESIGN_PRESETS = [
+  { value: "纪录片旁白：中年男性，标准普通话，嗓音低沉有磁性，轻微沙哑，沉稳有感染力" },
+  { value: "年轻女声，温柔清亮，语速适中，像深夜电台主播" },
+  { value: "东北口音大叔，嗓音粗犷豪爽，语速稍快，自带喜感" },
+  { value: "御姐音：成熟女性，高冷慵懒，尾音上扬带一丝戏谑" },
+  { value: "台湾腔少女，软萌甜美，语速轻快" },
+  { value: "沧桑老先生，北方口音，语速缓慢，声音沙哑有岁月感" },
+  { value: "英伦腔男声，低沉优雅，字正腔圆" },
+  { value: "ASMR 女声，气声为主，极近距离耳语感，含呼吸声" },
+];
+
+const CLONE_EXAMPLE_ROLE = "克隆角色";
+const CLONE_EXAMPLE_TEXT = `${CLONE_EXAMPLE_ROLE}：大家好，我就是刚才那段参考音频里的声音。现在我在说一句全新的台词，你听出来了吗？
+${CLONE_EXAMPLE_ROLE}：上传你自己的声音，替换我，让任何文字都用你的声线读出来。`;
+
+const DESIGN_EXAMPLE_TEXT = `旁白：夜幕降临，城市缓缓沉入温柔的黑暗。
+少年：我一定会找到那颗星星的，哪怕走遍整片荒野！
+智者：孩子，星光会指引每一个愿意抬头的人。`;
+
+const DESIGN_EXAMPLE_DESC: Record<string, string> = {
+  旁白: "纪录片旁白：中年男性，标准普通话，嗓音低沉有磁性，轻微沙哑，沉稳有感染力",
+  少年: "十五岁少年，声音清亮干净，朝气蓬勃，语速偏快，热血向上",
+  智者: "年迈智者，声音苍老温和，语速缓慢，字字有力，空灵悠远",
+};
 
 const EMOTION_OPTIONS = [
   { value: "开心", label: "开心（基础情绪）" },
@@ -76,6 +111,14 @@ interface TtsSegment {
   text: string;
   voice: string;
   style: string;
+  mode: TtsMode;
+  voiceDesc?: string;
+  refIdx?: number;
+}
+
+interface RefAudio {
+  file: File;
+  url: string;
 }
 
 interface TtsResult {
@@ -152,9 +195,12 @@ function defaultVoiceFor(role: string, roleOrder: string[]): string {
 }
 
 export default function TtsGen() {
+  const [mode, setMode] = useState<TtsMode>("preset");
   const [text, setText] = useState("");
   const [voiceOverrides, setVoiceOverrides] = useState<Record<string, string>>({});
   const [styleOverrides, setStyleOverrides] = useState<Record<string, string>>({});
+  const [designOverrides, setDesignOverrides] = useState<Record<string, string>>({});
+  const [refAudios, setRefAudios] = useState<Record<string, RefAudio>>({});
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
@@ -167,15 +213,37 @@ export default function TtsGen() {
   const voiceFor = (role: string) =>
     voiceOverrides[role] ?? defaultVoiceFor(role, parsed.roleOrder);
 
-  const effectiveSegments: TtsSegment[] = useMemo(
-    () =>
-      parsed.segments.map((seg) => ({
-        text: seg.text,
-        voice: voiceOverrides[seg.role] ?? defaultVoiceFor(seg.role, parsed.roleOrder),
-        style: (styleOverrides[seg.role] || "").trim(),
-      })),
-    [parsed, voiceOverrides, styleOverrides]
+  const missingRefs = useMemo(
+    () => (mode === "clone" ? parsed.roleOrder.filter((r) => !refAudios[r]) : []),
+    [mode, parsed.roleOrder, refAudios]
   );
+
+  const effectiveSegments: TtsSegment[] = useMemo(() => {
+    if (mode === "clone") {
+      return parsed.segments.map((seg) => ({
+        text: seg.text,
+        voice: "",
+        style: (styleOverrides[seg.role] || "").trim(),
+        mode: "clone",
+        refIdx: parsed.roleOrder.indexOf(seg.role),
+      }));
+    }
+    if (mode === "design") {
+      return parsed.segments.map((seg) => ({
+        text: seg.text,
+        voice: "",
+        style: (styleOverrides[seg.role] || "").trim(),
+        mode: "design",
+        voiceDesc: (designOverrides[seg.role] || "").trim(),
+      }));
+    }
+    return parsed.segments.map((seg) => ({
+      text: seg.text,
+      voice: voiceOverrides[seg.role] ?? defaultVoiceFor(seg.role, parsed.roleOrder),
+      style: (styleOverrides[seg.role] || "").trim(),
+      mode: "preset",
+    }));
+  }, [mode, parsed, voiceOverrides, styleOverrides, designOverrides]);
 
   useEffect(() => {
     if (!loading) return undefined;
@@ -189,17 +257,32 @@ export default function TtsGen() {
       message.warning("请输入要转换的文本");
       return;
     }
+    if (mode === "clone" && missingRefs.length > 0) {
+      message.warning(`角色「${missingRefs.join("、")}」还没上传参考音频`);
+      return;
+    }
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
     setError("");
     try {
-      const resp = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ segments: effectiveSegments }),
-        signal: controller.signal,
-      });
+      let resp: Response;
+      if (mode === "clone") {
+        const form = new FormData();
+        form.append("segments", JSON.stringify(effectiveSegments));
+        parsed.roleOrder.forEach((role, i) => {
+          const ref = refAudios[role];
+          if (ref) form.append(`ref_${i}`, ref.file, ref.file.name);
+        });
+        resp = await fetch("/api/tts", { method: "POST", body: form, signal: controller.signal });
+      } else {
+        resp = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ segments: effectiveSegments }),
+          signal: controller.signal,
+        });
+      }
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
         throw new Error(data?.error || `请求失败（${resp.status}）`);
@@ -225,7 +308,7 @@ export default function TtsGen() {
       setLoading(false);
       abortRef.current = null;
     }
-  }, [effectiveSegments]);
+  }, [effectiveSegments, mode, missingRefs, parsed.roleOrder, refAudios]);
 
   const cancel = () => {
     abortRef.current?.abort();
@@ -247,11 +330,71 @@ export default function TtsGen() {
     setStyleOverrides((prev) => ({ ...prev, [role]: style }));
   };
 
+  const addRefAudio = (role: string) => (file: File) => {
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".mp3") && !name.endsWith(".wav")) {
+      message.error("仅支持 MP3 / WAV 参考音频");
+      return false;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      message.error("参考音频不能超过 10MB");
+      return false;
+    }
+    setRefAudios((prev) => {
+      const old = prev[role];
+      if (old) URL.revokeObjectURL(old.url);
+      return { ...prev, [role]: { file, url: URL.createObjectURL(file) } };
+    });
+    return false;
+  };
+
+  const removeRefAudio = (role: string) => {
+    setRefAudios((prev) => {
+      const old = prev[role];
+      if (old) URL.revokeObjectURL(old.url);
+      const next = { ...prev };
+      delete next[role];
+      return next;
+    });
+  };
+
+  const loadDesignExample = () => {
+    setText(DESIGN_EXAMPLE_TEXT);
+    setDesignOverrides((prev) => ({ ...prev, ...DESIGN_EXAMPLE_DESC }));
+  };
+
+  const loadCloneExample = async () => {
+    setText(CLONE_EXAMPLE_TEXT);
+    try {
+      const resp = await fetch(`${import.meta.env.BASE_URL}tts-sample/voice-ref-sample.wav`);
+      if (!resp.ok) throw new Error("示例音频加载失败");
+      const blob = await resp.blob();
+      const file = new File([blob], "示例参考音频.wav", { type: "audio/wav" });
+      setRefAudios((prev) => {
+        const old = prev[CLONE_EXAMPLE_ROLE];
+        if (old) URL.revokeObjectURL(old.url);
+        return { ...prev, [CLONE_EXAMPLE_ROLE]: { file, url: URL.createObjectURL(file) } };
+      });
+      message.success("已载入示例参考音频，点击生成即可试听克隆效果");
+    } catch {
+      message.error("示例音频加载失败，请手动上传参考音频");
+    }
+  };
+
   return (
     <Card title="AI 文字转语音" style={{ maxWidth: 1000, margin: "0 auto" }}>
       <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        <Segmented
+          value={mode}
+          onChange={(v) => setMode(v as TtsMode)}
+          disabled={loading}
+          options={MODE_OPTIONS}
+          block
+        />
         <Text type="secondary" style={{ fontSize: 12 }}>
-          支持对话体多角色：每行「角色名：内容」或「【角色】内容」会自动分配音色；无角色前缀的行按旁白朗读。生成前可在下方分段预览中调整每个角色的音色。
+          {mode === "preset" && "预置音色：8 种官方音色，支持对话体多角色自动分配，每角色可调情感指令。"}
+          {mode === "design" && "音色设计：用一句话描述想要的音色（性别/年龄/口音/音质/语速/气质），AI 全新生成，无需参考音频。"}
+          {mode === "clone" && "音色复刻：每个角色上传几秒参考音频（MP3/WAV ≤10MB），高保真克隆声线；情感指令同样生效。"}
         </Text>
 
         <div>
@@ -276,38 +419,94 @@ export default function TtsGen() {
             <Tag style={{ cursor: "pointer" }} onClick={() => setText("在信息的海洋里，工具是我们最好的船桨。DevTools，打开即用，用完即走。")}>
               单人朗读示例
             </Tag>
+            {mode === "design" && (
+              <Tag style={{ cursor: "pointer" }} color="purple" onClick={loadDesignExample}>
+                🎨 音色设计一键示例
+              </Tag>
+            )}
+            {mode === "clone" && (
+              <Tag style={{ cursor: "pointer" }} color="geekblue" onClick={loadCloneExample}>
+                🧬 音色复刻一键示例（含示例音频）
+              </Tag>
+            )}
           </Space>
         </div>
 
         {parsed.roleOrder.length > 0 && (
           <Card type="inner" size="small" title={`角色配置（${parsed.roleOrder.length} 个角色）`}>
             <Space direction="vertical" style={{ width: "100%" }} size="small">
-              {parsed.roleOrder.map((role) => (
-                <div key={role} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <Tag color={TAG_COLORS[parsed.roleOrder.indexOf(role) % TAG_COLORS.length]} style={{ minWidth: 72, textAlign: "center", marginTop: 0 }}>
-                    {role}
-                  </Tag>
-                  <Select
-                    value={voiceFor(role)}
-                    onChange={(v) => changeVoice(role, v)}
-                    options={VOICE_OPTIONS}
-                    style={{ width: 150 }}
-                    disabled={loading}
-                  />
-                  <AutoComplete
-                    value={styleOverrides[role] || ""}
-                    onChange={(v) => changeStyle(role, v)}
-                    options={EMOTION_OPTIONS}
-                    filterOption={(input, option) => (option?.value as string).includes(input)}
-                    placeholder="情感指令（可选）：如疲惫低沉、语速慢，带着无奈"
-                    maxLength={200}
-                    disabled={loading}
-                    style={{ flex: 1 }}
-                  />
-                </div>
-              ))}
+              {parsed.roleOrder.map((role) => {
+                const ref = refAudios[role];
+                return (
+                  <div key={role} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <Tag color={TAG_COLORS[parsed.roleOrder.indexOf(role) % TAG_COLORS.length]} style={{ minWidth: 72, textAlign: "center", marginTop: 0 }}>
+                      {role}
+                    </Tag>
+                    {mode === "preset" && (
+                      <Select
+                        value={voiceFor(role)}
+                        onChange={(v) => changeVoice(role, v)}
+                        options={VOICE_OPTIONS}
+                        style={{ width: 150 }}
+                        disabled={loading}
+                      />
+                    )}
+                    {mode === "design" && (
+                      <AutoComplete
+                        value={designOverrides[role] || ""}
+                        onChange={(v) => setDesignOverrides((prev) => ({ ...prev, [role]: v }))}
+                        options={DESIGN_PRESETS}
+                        filterOption={(input, option) => (option?.value as string).includes(input)}
+                        placeholder="描述音色：性别/年龄/口音/音质/语速/气质"
+                        maxLength={300}
+                        disabled={loading}
+                        style={{ flex: 1, minWidth: 220 }}
+                      />
+                    )}
+                    {mode === "clone" && (
+                      <>
+                        {ref ? (
+                          <Space wrap style={{ flex: 1 }}>
+                            <Tag
+                              closable={!loading}
+                              onClose={() => removeRefAudio(role)}
+                              icon={<UploadOutlined />}
+                            >
+                              {(ref.file.name.length > 16 ? ref.file.name.slice(0, 16) + "…" : ref.file.name)}
+                            </Tag>
+                            <audio controls src={ref.url} style={{ height: 32, maxWidth: 240 }} />
+                          </Space>
+                        ) : (
+                          <Upload accept=".mp3,.wav" showUploadList={false} beforeUpload={addRefAudio(role)} disabled={loading}>
+                            <Button size="small" icon={<UploadOutlined />}>
+                              上传参考音频（几秒 MP3/WAV）
+                            </Button>
+                          </Upload>
+                        )}
+                      </>
+                    )}
+                    <AutoComplete
+                      value={styleOverrides[role] || ""}
+                      onChange={(v) => changeStyle(role, v)}
+                      options={EMOTION_OPTIONS}
+                      filterOption={(input, option) => (option?.value as string).includes(input)}
+                      placeholder="情感指令（可选）"
+                      maxLength={200}
+                      disabled={loading}
+                      style={{ flex: 2, minWidth: 180 }}
+                    />
+                  </div>
+                );
+              })}
+              {mode === "clone" && missingRefs.length > 0 && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message={`角色「${missingRefs.join("、")}」还没上传参考音频`}
+                />
+              )}
               <Text type="secondary" style={{ fontSize: 12 }}>
-                情感支持自然语言描述（不会读出指令本身）；也可在正文里内嵌标签：段首 (开心)（慵懒）[东北话]，句间任意位置 (呼吸) (长叹一口气) (提高音量喊话) (紧张，深呼吸)
+                情感指令不会读出（仅控制语气）；也可在正文内嵌标签：段首 (开心)（慵懒）[东北话]，句间 (呼吸) (长叹一口气) (提高音量喊话) (紧张，深呼吸)
               </Text>
             </Space>
           </Card>
@@ -348,7 +547,7 @@ export default function TtsGen() {
             icon={<SendOutlined />}
             onClick={generate}
             loading={loading}
-            disabled={parsed.segments.length === 0 || overLimit}
+            disabled={parsed.segments.length === 0 || overLimit || (mode === "clone" && missingRefs.length > 0)}
           >
             {loading ? `生成中 ${elapsed}s` : "生成音频"}
           </Button>
