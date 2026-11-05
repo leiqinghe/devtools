@@ -28,6 +28,8 @@ import {
   CloudUploadOutlined,
   RobotOutlined,
   AudioOutlined,
+  PlayCircleOutlined,
+  RocketOutlined,
 } from "@ant-design/icons";
 
 export interface ToolItem {
@@ -114,8 +116,15 @@ export const toolGroups: CategoryGroup[] = [
     ],
   },
   {
-    name: "文件工具",
+    name: "手势游戏",
     tools: [
+      { path: "/games", Icon: PlayCircleOutlined, title: "游戏中心", desc: "手势控制的网页游戏合集，摄像头识别手部动作" },
+      { path: "/games/aircraft", Icon: RocketOutlined, title: "飞机大战", desc: "掌心控制战机，捏合放炸弹，十波敌人与 Boss" },
+      { path: "/games/hand-lab", Icon: ExperimentOutlined, title: "手势实验室", desc: "实时骨架与手势读数，调灵敏度与触发阈值" },
+    ],
+  },
+  {
+    name: "文件工具",    tools: [
       { path: "/file-share", Icon: CloudUploadOutlined, title: "文件分享", desc: "上传文件生成短时下载链接和二维码" },
     ],
   },

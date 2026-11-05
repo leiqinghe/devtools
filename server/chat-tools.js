@@ -32,6 +32,9 @@ export const TOOL_CATALOG = [
   { path: "/unit-convert", title: "单位换算", desc: "长度/重量/温度/面积/体积换算" },
   { path: "/id-card-parse", title: "身份证信息提取", desc: "解析身份证号的省份/生日/性别" },
   { path: "/tts-gen", title: "AI 文字转语音", desc: "输入文本生成语音，多角色自动切换音色" },
+  { path: "/games", title: "游戏中心", desc: "手势控制的网页游戏合集，摄像头识别手部动作" },
+  { path: "/games/aircraft", title: "飞机大战", desc: "掌心控制战机，捏合放炸弹，十波敌人与 Boss" },
+  { path: "/games/hand-lab", title: "手势实验室", desc: "实时骨架与手势读数，调灵敏度与触发阈值" },
   { path: "/file-share", title: "文件分享", desc: "上传文件生成短时下载链接和二维码" },
 ];
 

@@ -36,6 +36,9 @@ const IdCardParse = lazy(() => import("./pages/tools/IdCardParse"));
 const FileShare = lazy(() => import("./pages/tools/FileShare"));
 const ImageGen = lazy(() => import("./pages/tools/ImageGen"));
 const TtsGen = lazy(() => import("./pages/tools/TtsGen"));
+const GamesHome = lazy(() => import("./pages/games/GamesHome"));
+const AircraftGame = lazy(() => import("./pages/games/AircraftGame"));
+const HandLab = lazy(() => import("./pages/games/HandLab"));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
@@ -88,6 +91,9 @@ export default function App() {
         <Route path="/id-card-parse" element={<LazyLoad><IdCardParse /></LazyLoad>} />
         <Route path="/file-share" element={<LazyLoad><FileShare /></LazyLoad>} />
         <Route path="/tts-gen" element={<LazyLoad><TtsGen /></LazyLoad>} />
+        <Route path="/games" element={<LazyLoad><GamesHome /></LazyLoad>} />
+        <Route path="/games/aircraft" element={<LazyLoad><AircraftGame /></LazyLoad>} />
+        <Route path="/games/hand-lab" element={<LazyLoad><HandLab /></LazyLoad>} />
       </Route>
     </Routes>
   );

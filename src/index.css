@@ -26,6 +26,15 @@ body {
   overflow-y: auto;
 }
 
+/* 游戏沉浸模式：锁页面滚动并隐藏漂浮聊天球，退出时自动恢复 */
+body.game-immersive {
+  overflow: hidden;
+}
+
+body.game-immersive #chat-widget-host {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .desktop-nav {
     display: none !important;
