@@ -33,7 +33,60 @@ const NARRATION_ROLE = "旁白";
 const ROLE_VOICE_POOL = ["苏打", "冰糖", "白桦", "Mia", "Chloe", "Milo", "Dean"];
 const MAX_SEGMENTS = 30;
 const MAX_SEGMENT_LENGTH = 480;
+const MAX_RECORD_SECS = 30;
+const RECORD_RATE = 24000;
 const TAG_COLORS = ["blue", "green", "orange", "purple", "cyan", "magenta", "gold", "volcano"];
+
+function pickRecorderMime(): string {
+  if (typeof MediaRecorder === "undefined") return "";
+  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"];
+  return candidates.find((m) => MediaRecorder.isTypeSupported(m)) || "";
+}
+
+function encodeWav(buffer: AudioBuffer): Blob {
+  const samples = buffer.getChannelData(0);
+  const bytes = samples.length * 2;
+  const view = new DataView(new ArrayBuffer(44 + bytes));
+  const writeStr = (offset: number, s: string) => {
+    for (let i = 0; i < s.length; i += 1) view.setUint8(offset + i, s.charCodeAt(i));
+  };
+  writeStr(0, "RIFF");
+  view.setUint32(4, 36 + bytes, true);
+  writeStr(8, "WAVE");
+  writeStr(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, buffer.sampleRate, true);
+  view.setUint32(28, buffer.sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, "data");
+  view.setUint32(40, bytes, true);
+  let offset = 44;
+  for (let i = 0; i < samples.length; i += 1) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    offset += 2;
+  }
+  return new Blob([view.buffer], { type: "audio/wav" });
+}
+
+async function recordedBlobToWav(blob: Blob): Promise<Blob> {
+  const ctx = new AudioContext();
+  try {
+    const decoded = await ctx.decodeAudioData(await blob.arrayBuffer());
+    const frames = Math.max(1, Math.ceil(decoded.duration * RECORD_RATE));
+    const offline = new OfflineAudioContext(1, frames, RECORD_RATE);
+    const source = offline.createBufferSource();
+    source.buffer = decoded;
+    source.connect(offline.destination);
+    source.start();
+    return encodeWav(await offline.startRendering());
+  } finally {
+    void ctx.close();
+  }
+}
 
 type TtsMode = "preset" | "design" | "clone";
 
@@ -201,11 +254,52 @@ export default function TtsGen() {
   const [styleOverrides, setStyleOverrides] = useState<Record<string, string>>({});
   const [designOverrides, setDesignOverrides] = useState<Record<string, string>>({});
   const [refAudios, setRefAudios] = useState<Record<string, RefAudio>>({});
+  const [recordingRole, setRecordingRole] = useState("");
+  const [recordSecs, setRecordSecs] = useState(0);
+  const [converting, setConverting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
   const [result, setResult] = useState<TtsResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordTimerRef = useRef<number | null>(null);
+  const recordSecsRef = useRef(0);
+
+  // 录音计时 + 30 秒上限自动停止
+  useEffect(() => {
+    if (!recordingRole) return undefined;
+    setRecordSecs(0);
+    recordSecsRef.current = 0;
+    recordTimerRef.current = window.setInterval(() => {
+      setRecordSecs((s) => {
+        const next = s + 1;
+        recordSecsRef.current = next;
+        if (next >= MAX_RECORD_SECS) {
+          const rec = recorderRef.current;
+          if (rec && rec.state !== "inactive") rec.stop();
+        }
+        return next;
+      });
+    }, 1000);
+    return () => {
+      if (recordTimerRef.current) window.clearInterval(recordTimerRef.current);
+    };
+  }, [recordingRole]);
+
+  // 组件卸载时释放麦克风与计时器
+  useEffect(
+    () => () => {
+      if (recordTimerRef.current) window.clearInterval(recordTimerRef.current);
+      const rec = recorderRef.current;
+      if (rec && rec.state !== "inactive") {
+        rec.onstop = null;
+        rec.stop();
+        rec.stream.getTracks().forEach((t) => t.stop());
+      }
+    },
+    []
+  );
 
   const parsed = useMemo(() => parseDialogue(text), [text]);
   const overLimit = parsed.segments.length > MAX_SEGMENTS;
@@ -358,6 +452,72 @@ export default function TtsGen() {
     });
   };
 
+  const setRefBlob = (role: string, blob: Blob, filename: string) => {
+    const file = new File([blob], filename, { type: blob.type || "audio/wav" });
+    setRefAudios((prev) => {
+      const old = prev[role];
+      if (old) URL.revokeObjectURL(old.url);
+      return { ...prev, [role]: { file, url: URL.createObjectURL(file) } };
+    });
+  };
+
+  const startRecording = async (role: string) => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      message.error("当前浏览器不支持录音，请改用上传音频");
+      return;
+    }
+    if (recordingRole) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      const mimeType = pickRecorderMime();
+      const rec = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (recordTimerRef.current) window.clearInterval(recordTimerRef.current);
+        recorderRef.current = null;
+        setRecordingRole("");
+        const raw = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+        if (raw.size < 2000) {
+          message.warning("录音太短，请至少说 2 秒");
+          return;
+        }
+        setConverting(true);
+        try {
+          const wav = await recordedBlobToWav(raw);
+          setRefBlob(role, wav, `录音-${role}.wav`);
+          message.success(`已录制 ${recordSecsRef.current} 秒，可试听后生成`);
+        } catch {
+          message.error("录音转码失败，请重试或改用上传音频");
+        } finally {
+          setConverting(false);
+        }
+      };
+      recorderRef.current = rec;
+      rec.start();
+      setRecordingRole(role);
+    } catch (err) {
+      const name = (err as Error)?.name;
+      if (name === "NotAllowedError") {
+        message.error("麦克风权限被拒绝，请在浏览器地址栏允许麦克风后重试");
+      } else if (name === "NotFoundError") {
+        message.error("未检测到麦克风设备");
+      } else {
+        message.error("无法开始录音，请检查麦克风权限");
+      }
+    }
+  };
+
+  const stopRecording = () => {
+    const rec = recorderRef.current;
+    if (rec && rec.state !== "inactive") rec.stop();
+  };
+
   const loadDesignExample = () => {
     setText(DESIGN_EXAMPLE_TEXT);
     setDesignOverrides((prev) => ({ ...prev, ...DESIGN_EXAMPLE_DESC }));
@@ -394,7 +554,7 @@ export default function TtsGen() {
         <Text type="secondary" style={{ fontSize: 12 }}>
           {mode === "preset" && "预置音色：8 种官方音色，支持对话体多角色自动分配，每角色可调情感指令。"}
           {mode === "design" && "音色设计：用一句话描述想要的音色（性别/年龄/口音/音质/语速/气质），AI 全新生成，无需参考音频。"}
-          {mode === "clone" && "音色复刻：每个角色上传几秒参考音频（MP3/WAV ≤10MB），高保真克隆声线；情感指令同样生效。"}
+          {mode === "clone" && "音色复刻：每个角色可现场录音或上传几秒音频（MP3/WAV ≤10MB），高保真克隆声线；录音仅在本机处理，不上传原始录音。"}
         </Text>
 
         <div>
@@ -475,13 +635,41 @@ export default function TtsGen() {
                               {(ref.file.name.length > 16 ? ref.file.name.slice(0, 16) + "…" : ref.file.name)}
                             </Tag>
                             <audio controls src={ref.url} style={{ height: 32, maxWidth: 240 }} />
+                            <Button
+                              size="small"
+                              icon={<AudioOutlined />}
+                              disabled={loading || converting || Boolean(recordingRole)}
+                              onClick={() => startRecording(role)}
+                            >
+                              重录
+                            </Button>
+                          </Space>
+                        ) : recordingRole === role ? (
+                          <Space style={{ flex: 1 }}>
+                            <Button size="small" danger type="primary" icon={<AudioOutlined />} onClick={stopRecording}>
+                              停止录音 {recordSecs}s / {MAX_RECORD_SECS}s
+                            </Button>
+                            <Text type="danger" style={{ fontSize: 12 }}>
+                              ● 正在录音，请朗读一段话（2~10 秒效果最好）
+                            </Text>
                           </Space>
                         ) : (
-                          <Upload accept=".mp3,.wav" showUploadList={false} beforeUpload={addRefAudio(role)} disabled={loading}>
-                            <Button size="small" icon={<UploadOutlined />}>
-                              上传参考音频（几秒 MP3/WAV）
+                          <Space wrap style={{ flex: 1 }}>
+                            <Button
+                              size="small"
+                              icon={<AudioOutlined />}
+                              disabled={loading || converting || Boolean(recordingRole)}
+                              onClick={() => startRecording(role)}
+                            >
+                              录音
                             </Button>
-                          </Upload>
+                            <Upload accept=".mp3,.wav" showUploadList={false} beforeUpload={addRefAudio(role)} disabled={loading || converting || Boolean(recordingRole)}>
+                              <Button size="small" icon={<UploadOutlined />} disabled={loading || converting || Boolean(recordingRole)}>
+                                上传 MP3/WAV
+                              </Button>
+                            </Upload>
+                            {converting && <Text type="secondary" style={{ fontSize: 12 }}>录音转码中…</Text>}
+                          </Space>
                         )}
                       </>
                     )}
