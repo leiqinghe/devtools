@@ -109,6 +109,9 @@ cd <仓库目录> && git add -A && git commit -m "..." && git push
 | `server/tts-router.js` | AI 文生语音路由（分段校验/限流/pcm16 合并 + WAV 封装） |
 | `server/tts-client.js` | MiMo TTS 客户端（chat.completions，文本放 assistant 角色） |
 | `server/share-code-router.js` | 文件分享 + 快捷分享码（**接管** /api/share/upload 与 /share/:id，挂载在 server.js 原路由之前） |
+| `server/chat-router.js` | AI 对话机器人路由（CORS 白名单/限流/入参校验/SSE 响应；`buildMessages()` 为知识库接缝） |
+| `server/chat-client.js` | OpenAI 兼容 chat completions 客户端（SSE 流式转发，空闲超时，出站走 url-guard） |
+| `public/chat-widget.js` | 嵌入式聊天组件（原生 JS + Shadow DOM 单文件，两站共用，script `data-*` 属性配置） |
 | `server/url-guard.js` | 出站安全守卫：协议/host 白名单/私网保留段/DNS 预解析/禁重定向 |
 | `nginx.conf` | 反代规则；生图接口 `proxy_read_timeout 320s` |
 | `docker-compose.yml` | 两个服务；backend 的 environment 从 .env 注入 |
@@ -147,6 +150,19 @@ cd <仓库目录> && git add -A && git commit -m "..." && git push
 - env 清单（服务器 `.env`，代码均有默认值，`TTS_API_KEY` 必配）：`TTS_BASE_URL`、`TTS_MODEL`、`TTS_MODEL_DESIGN`、`TTS_MODEL_CLONE`、`TTS_RATE_LIMIT`、`TTS_TIMEOUT_MS`、`TTS_ALLOWED_HOSTS`(可选)
 - **坑**：`TTS_BASE_URL` 默认值要在 router 代码里给（不能只在 compose 配），否则本地裸跑永远 503；并发池 worker 失败后其他段不落盘会产生稀疏数组，`Buffer.concat` 遇洞报 ERR_INVALID_ARG_TYPE——必须在 concat 前检查 failure
 - 音色：冰糖/茉莉（中文女）、苏打/白桦（中文男）、Mia/Chloe（英文女）、Milo/Dean（英文男）；唱歌模式/内嵌标签仅基础模型支持；复刻示例音频 `public/tts-sample/voice-ref-sample.wav`（苏打合成，随站点分发，前端示例一键载入）
+
+## AI 对话机器人（漂浮 widget + /api/chat）要点
+
+- 架构：`public/chat-widget.js`（原生 JS + Shadow DOM，唯一源码，托管在 tools 域名）被两个站 `<script>` 引用（devtools 同源 `/api/chat`；portfolio 跨域绝对 URL）→ chat-router → chat-client → url-guard → OpenAI 兼容中转站
+- API：POST `/api/chat`，body `{messages:[{role:"user"|"assistant",content}], stream}`；流式返回 SSE 事件 `data: {"delta"}` / `{"done",model}` / `{"error"}`；`stream:false` 返回 JSON（curl 冒烟用）
+- CORS：仅此路由启用，`CHAT_ALLOWED_ORIGINS` 白名单（默认 leiqinghe.cloud + tools.leiqinghe.cloud + IP:8100 入口）；非浏览器请求（无 Origin）直接放行
+- env 清单（服务器 `.env`）：`CHAT_BASE_URL` / `CHAT_API_KEY` / `CHAT_MODEL`（必配，未配返回 503）；`CHAT_RATE_LIMIT`(10/分/IP)、`CHAT_TIMEOUT_MS`(120s，**空闲超时**——每收到一段流式数据就重置)、`CHAT_MAX_TOKENS`(2000)、`CHAT_ALLOWED_ORIGINS`、`CHAT_ALLOWED_HOSTS`、`CHAT_SYSTEM_PROMPT`(可选，覆盖默认人设「小雷助手」)
+- **SSE 必须双层 nginx 都关缓冲**：容器 `nginx.conf` 的 `/api/chat` location 和宿主机 `/etc/nginx/sites-enabled/tools` 都要 `proxy_buffering off`（后端还发了 `X-Accel-Buffering: no` 双保险）；只关一层前端收不到流
+- widget 更新机制：`chat-widget.js`/`chat-avatar.png` 是**无 hash 公共文件**，nginx 已加 `chat-(widget|avatar)` no-cache 规则；widget 改动只需重新部署 devtools，两站同时生效
+- 入参限制：≤20 条消息、单条 ≤4000 字、总长 ≤16000 字（服务器 express.json 全局 64kb 上限决定的总量预算）
+- 限流器写法：用 `Object.create(null)` 普通对象 + 括号访问（**别用 Map.get——曾被 Mimosa 误判为网络调用拦截**，见经验教训）
+- 知识库 Phase 2 接缝：`chat-router.js` 的 `buildMessages()`；文档少直接扩系统提示词，多了走 embeddings + 本地向量检索（`knowledge-index.json`，零新服务）
+- 部署顺序：**必须先 devtools 后 portfolio**（widget 从 tools 域名加载）；头像 `public/chat-avatar.png`（256px，站内 /image-gen 生成，3D 蓝紫风格与 portfolio 图标统一）
 
 ## 文件分享快捷码要点
 

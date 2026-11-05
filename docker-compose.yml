@@ -28,6 +28,15 @@ services:
       - TTS_RATE_LIMIT=${TTS_RATE_LIMIT:-5}
       - TTS_TIMEOUT_MS=${TTS_TIMEOUT_MS:-120000}
       - TTS_ALLOWED_HOSTS=${TTS_ALLOWED_HOSTS:-}
+      - CHAT_BASE_URL=${CHAT_BASE_URL:-}
+      - CHAT_API_KEY=${CHAT_API_KEY:-}
+      - CHAT_MODEL=${CHAT_MODEL:-deepseek-v4.1-flash}
+      - CHAT_MODELS=${CHAT_MODELS:-deepseek-v4.1-flash}
+      - CHAT_RATE_LIMIT=${CHAT_RATE_LIMIT:-10}
+      - CHAT_TIMEOUT_MS=${CHAT_TIMEOUT_MS:-120000}
+      - CHAT_MAX_TOKENS=${CHAT_MAX_TOKENS:-2000}
+      - CHAT_ALLOWED_ORIGINS=${CHAT_ALLOWED_ORIGINS:-}
+      - CHAT_ALLOWED_HOSTS=${CHAT_ALLOWED_HOSTS:-}
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/',()=>process.exit(0)).on('error',()=>process.exit(1))"]
       interval: 5s

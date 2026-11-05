@@ -5,6 +5,7 @@ import imageGenRouter from "./image-gen-router.js";
 import imageGenEditsRouter from "./image-gen-edits-router.js";
 import ttsRouter from "./tts-router.js";
 import shareCodeRouter from "./share-code-router.js";
+import chatRouter from "./chat-router.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,8 @@ app.use(imageGenEditsRouter);
 app.use(ttsRouter);
 // 文件分享 + 快捷分享码（必须挂在下方原 /api/share/upload 之前，见 share-code-router.js）
 app.use(shareCodeRouter);
+// AI 对话机器人（widget 嵌入两站，SSE 流式，见 chat-router.js）
+app.use(chatRouter);
 
 app.post("/api/share/upload", upload.single("file"), (req, res) => {
   if (!req.file) {
