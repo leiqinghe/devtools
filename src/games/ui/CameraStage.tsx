@@ -64,6 +64,9 @@ export default function CameraStage({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef(0);
+  /** getHands 每次渲染都是新函数，放进依赖会让绘制循环反复重建 → 用 ref 取最新实现 */
+  const getHandsRef = useRef(getHands);
+  getHandsRef.current = getHands;
 
   // 把 video 挂进 DOM（video 由外部创建，addEventListener 不受影响）
   useEffect(() => {
@@ -74,6 +77,11 @@ export default function CameraStage({
     video.style.height = "100%";
     video.style.objectFit = "cover";
     video.style.transform = mirrored ? "scaleX(-1)" : "none";
+    // 必须压在骨架 canvas 之下：canvas 是 JSX 先声明的，video 后 append，
+    // 不给层级的话 video 会盖住骨架（表现为"识别到但看不到骨架"）
+    video.style.position = "absolute";
+    video.style.inset = "0";
+    video.style.zIndex = "1";
     wrap.appendChild(video);
     return () => {
       if (video.parentElement === wrap) wrap.removeChild(video);
@@ -106,7 +114,7 @@ export default function CameraStage({
       ctx.clearRect(0, 0, w, h);
       if (!showSkeleton) return;
 
-      const hands = getHands();
+      const hands = getHandsRef.current();
       for (const hand of hands) {
         const lm = hand.landmarks;
         // 摄像头坐标是 0~1，镜像时 X 翻转，与视频预览方向一致
@@ -140,7 +148,9 @@ export default function CameraStage({
       cancelAnimationFrame(rafRef.current);
       ro.disconnect();
     };
-  }, [mirrored, showSkeleton, getHands]);
+    // getHands 通过 ref 读取，不进依赖，避免循环被反复重建
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mirrored, showSkeleton]);
 
   return (
     <div
@@ -157,7 +167,10 @@ export default function CameraStage({
         transition: "opacity 0.25s",
       }}
     >
-      <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
+      <canvas
+        ref={canvasRef}
+        style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2 }}
+      />
     </div>
   );
 }

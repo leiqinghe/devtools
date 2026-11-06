@@ -41,6 +41,7 @@ export default function HandLab() {
   const [readout, setReadout] = useState({ pinch: 0, fist: 0, hands: 0, fistProgress: 0 });
   const [persist, setPersist] = useState(true);
   const [videoInfo, setVideoInfo] = useState("—");
+  const [handPos, setHandPos] = useState({ x: 0, y: 0, live: false });
   const [, forceDiag] = useState(0);
 
   // 轮询读数（20Hz），避免把 60fps 数据塞进 React
@@ -49,14 +50,22 @@ export default function HandLab() {
       const src = gesture.source;
       if (!src) {
         setReadout({ pinch: 0, fist: 0, hands: 0, fistProgress: 0 });
+        setHandPos({ x: 0, y: 0, live: false });
         return;
       }
       setReadout(src.readouts);
+      // 取 HandSource 自己算出的归一化位置，验证"手→操控"这一段通不通
+      const p = src.position;
+      const f = src.frame();
+      setHandPos({ x: p.x, y: p.y, live: f.live });
       setVideoInfo(gesture.tracker?.describeVideo(gesture.video) ?? "—");
       forceDiag((n) => (n + 1) % 1000);
     }, 50);
     return () => clearInterval(timer);
   }, [gesture.source, gesture.tracker, gesture.video]);
+
+  /** 相机是否出画面：分辨率非 0 且 readyState >= 2 */
+  const camOk = /^(\d+)×(\d+)/.test(videoInfo) && !videoInfo.startsWith("0×0");
 
   /** 诊断快照：每次轮询都重取，直接读 tracker 内部计数 */
   const diag = gesture.tracker?.stats ?? {
@@ -191,6 +200,32 @@ export default function HandLab() {
                 description="可以先用鼠标/键盘玩，或者用 https 域名重新打开本页。"
               />
             )}
+
+            {/* 链路状态条：一眼看出断在哪一层 */}
+            <div
+              style={{
+                marginTop: 12,
+                padding: "8px 10px",
+                borderRadius: 8,
+                background: "#f5f8fc",
+                border: "1px solid #e6eef7",
+                fontSize: 11.5,
+                lineHeight: 1.9,
+                color: "#5a7086",
+              }}
+            >
+              <div>
+                ① 相机：{videoInfo} {camOk ? "✅" : "❌"}
+              </div>
+              <div>② 检测：{diag.detectCalls > 0 ? `已执行 ${diag.detectCalls} 次 ✅` : "尚未执行 ❌"}</div>
+              <div>
+                ③ 识别：{readout.hands > 0 ? `识别到 ${readout.hands} 只手 ✅` : "未识别到手"}
+                {diag.emptyFrames > 0 ? `（连续空帧 ${diag.emptyFrames}）` : ""}
+              </div>
+              <div>
+                ④ 输出：x={handPos.x.toFixed(2)} y={handPos.y.toFixed(2)} {handPos.live ? "✅" : "❌"}
+              </div>
+            </div>
 
             <Paragraph type="secondary" style={{ fontSize: 11.5, marginTop: 12, marginBottom: 0 }}>
               视频流只在浏览器内处理，不会上传到服务器。
