@@ -125,6 +125,25 @@ export function useGestureRuntime(): UseGestureRuntime {
     return () => clearInterval(timer);
   }, [status]);
 
+  /**
+   * 检测驱动循环：HandSource 的 update() 负责跑 MediaPipe 检测 + 平滑，
+   * 必须有人按帧调用它，否则手永远识别不到（游戏循环只读 frame()，不负责驱动）。
+   * 这里是唯一的驱动方：tracker.detect 内部自限 30fps，游戏页/实验室都只读取结果。
+   */
+  useEffect(() => {
+    if (status !== "ready") return undefined;
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      raf = requestAnimationFrame(tick);
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      sourceRef.current?.update(dt, now);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [status]);
+
   useEffect(() => stop, [stop]);
 
   const mirror = true;

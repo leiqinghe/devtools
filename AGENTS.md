@@ -240,6 +240,7 @@ curl -s http://101.201.56.200:8100/assets/index-*.js | grep -ci "sk-\|api_key"
 - **页面**：`/games` 游戏中心（注册表驱动）、`/games/aircraft` 飞机大战（沉浸层 `body.game-immersive` 全屏 + 隐藏聊天球，Esc/握拳暂停）、`/games/hand-lab` 手势实验室（骨架预览 + 灵敏度/阈值滑块 + 持久化）。最高分/设置存 localStorage（`games:` 前缀），异常降级内存。
 - **数值调参**：`src/games/aircraft/balance.ts`（波次/武器/连击/Boss 全在这）；波次脚本 `waves.ts`（1~10 手工设计，10+ 无限缩放，每 5 波 Boss）。
 - **React 坑**：`setUseHand(false)` 后立刻调 `beginRun()`，闭包拿到旧 state，导致点「用鼠标玩」也去申请摄像头 → `beginRun` 必须显式传参 `beginRun(withHand)`。
+- **驱动责任坑**：`HandSource.update()` 是唯一执行 MediaPipe 检测与平滑的地方，**必须有人按帧调它**——`useGestureRuntime` 里有专门的 rAF 驱动循环（status=ready 时启动）。游戏循环和实验室都只读 `frame()`/`readouts`，谁都不负责驱动。漏掉驱动循环的症状：一直提示「没检测到手」、实验室读数恒 0、游戏静默回退指针模式。
 
 ## 经验教训（2026-11 AI 生图模块开发实录）
 1. **安全钩子（Mimosa）会拦截含出站请求的代码写入 `server.js`**：静态扫描把「路由读 req.body → 转发请求」判为高危 SSRF，无论防护多完善都拦。
