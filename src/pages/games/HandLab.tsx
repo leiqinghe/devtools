@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, Button, Card, Col, Row, Slider, Switch, Tag, Typography, message } from "antd";
+import { Alert, Button, Card, Col, Divider, Row, Slider, Switch, Tag, Typography, message } from "antd";
 import { ArrowLeftOutlined, CameraOutlined, PlayCircleOutlined, ReloadOutlined } from "@ant-design/icons";
 import CameraStage from "../../games/ui/CameraStage";
 import { useGestureRuntime } from "../../games/ui/useGestureRuntime";
@@ -40,6 +40,8 @@ export default function HandLab() {
   const gesture = useGestureRuntime();
   const [readout, setReadout] = useState({ pinch: 0, fist: 0, hands: 0, fistProgress: 0 });
   const [persist, setPersist] = useState(true);
+  const [videoInfo, setVideoInfo] = useState("—");
+  const [, forceDiag] = useState(0);
 
   // 轮询读数（20Hz），避免把 60fps 数据塞进 React
   useEffect(() => {
@@ -50,9 +52,22 @@ export default function HandLab() {
         return;
       }
       setReadout(src.readouts);
+      setVideoInfo(gesture.tracker?.describeVideo(gesture.video) ?? "—");
+      forceDiag((n) => (n + 1) % 1000);
     }, 50);
     return () => clearInterval(timer);
-  }, [gesture.source]);
+  }, [gesture.source, gesture.tracker, gesture.video]);
+
+  /** 诊断快照：每次轮询都重取，直接读 tracker 内部计数 */
+  const diag = gesture.tracker?.stats ?? {
+    detectCalls: 0,
+    errors: 0,
+    lastError: "",
+    lastRunAt: 0,
+    emptyFrames: 0,
+    skipReason: "no-tracker",
+    delegate: "-",
+  };
 
   // 直接算一遍原始值做交叉验证（看是否与 source 读数一致）
   const raw = useMemo(() => {
@@ -209,9 +224,26 @@ export default function HandLab() {
             <div style={{ marginTop: 10 }}>
               <Tag color={readout.fistProgress > 0.95 ? "red" : "default"}>握拳会触发暂停</Tag>
             </div>
+
+            {/* 诊断：能一眼看出是"模型没跑"还是"跑了但没识别到" */}
+            <Divider style={{ margin: "14px 0 10px" }} />
+            <Text strong style={{ fontSize: 12 }}>
+              运行诊断
+            </Text>
+            <div style={{ fontSize: 11.5, color: "#5a7086", lineHeight: 1.9, marginTop: 4 }}>
+              <div>分辨率：{videoInfo}</div>
+              <div>
+                检测次数：{diag.detectCalls}　异常：{diag.errors}
+              </div>
+              <div>连续空帧：{diag.emptyFrames}</div>
+              <div>跳过原因：{diag.skipReason || "无"}</div>
+              <div>计算后端：{diag.delegate}</div>
+              {diag.lastError && (
+                <div style={{ color: "#c0392b", wordBreak: "break-all" }}>错误：{diag.lastError}</div>
+              )}
+            </div>
           </Card>
         </Col>
-
         <Col xs={24} md={24} lg={7}>
           <Card title="手感调参" style={{ borderRadius: 14 }} styles={{ body: { padding: 16 } }}>
             <div style={{ fontSize: 12, marginBottom: 4, display: "flex", justifyContent: "space-between" }}>
