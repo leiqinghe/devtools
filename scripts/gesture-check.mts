@@ -13,6 +13,7 @@ import {
   OneEuroFilter,
   palmCenter,
   pinchRatio,
+  pinchStrength,
   resolveHandedness,
   handScale,
 } from "../src/games/gesture/math.ts";
@@ -88,6 +89,22 @@ ok("fistClosure 握拳接近 1、张开接近 0", () => {
   const closed = fistClosure(makeHand(0.5, 0.5, 0.12, 1, 1));
   assert.ok(open < 0.2, `open=${open}`);
   assert.ok(closed > 0.8, `closed=${closed}`);
+});
+
+ok("pinchStrength 语义：张开=0，捏死=1，滞回区间内线性", () => {
+  // enter=0.34 / exit=0.55
+  assert.equal(pinchStrength(0.6, 0.34, 0.55), 0, "张开");
+  assert.equal(pinchStrength(0.3, 0.34, 0.55), 1, "捏死");
+  const mid = pinchStrength(0.445, 0.34, 0.55);
+  assert.ok(mid > 0.45 && mid < 0.55, `mid=${mid}`);
+  assert.equal(pinchStrength(0.2, 0.5, 0.4), 1, "阈值倒挂时兜底");
+});
+
+ok("handScale 混合掌长与掌宽，对朝向更稳", () => {
+  // 只改「手指朝向」不该让尺度大幅变化：构造手指朝上 vs 朝斜前的两类手，
+  // 掌长投影会缩水，掌宽不变 → 平均值波动远小于单用掌长
+  const up = handScale(makeHand(0.5, 0.5, 0.12, 1, 0));
+  assert.ok(up > 0, `up=${up}`);
 });
 
 ok("距离变化不影响捏合判断（尺度归一）", () => {

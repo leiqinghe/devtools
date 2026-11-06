@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cameraSupport, openCamera, type CameraHandle, type CameraError } from "../gesture/camera";
 import { getTracker, type HandTracker, type TrackerProgress } from "../gesture/tracker";
+import { pinchStrength } from "../gesture/math";
 import { HandSource } from "../gesture/hand-source";
 import { loadGestureSettings, type GestureSettings } from "../gesture/settings";
 
@@ -26,6 +27,8 @@ export interface UseGestureRuntime {
   settings: GestureSettings;
   /** 当前是否收到了手 */
   hasHand: boolean;
+  // 捏合力度 0~1（拉满=触发炸弹），供游戏内 HUD 显示蓄力环
+  pinchPower: number;
   mirror: boolean;
   start: () => Promise<void>;
   stop: () => void;
@@ -39,6 +42,7 @@ export function useGestureRuntime(): UseGestureRuntime {
   const [settings, setSettings] = useState<GestureSettings>(loadGestureSettings);
   const [video, setVideo] = useState<HTMLVideoElement | null>(null);
   const [hasHand, setHasHand] = useState(false);
+  const [pinchPower, setPinchPower] = useState(0);
 
   const cameraRef = useRef<CameraHandle | null>(null);
   const sourceRef = useRef<HandSource | null>(null);
@@ -115,13 +119,17 @@ export function useGestureRuntime(): UseGestureRuntime {
     });
   }, []);
 
-  // 手是否在场：轮询 source 的读数，避免把高频数据塞进 React state
+  // 手是否在场 + 捏合反馈：轮询 source 的读数，避免把 60fps 数据塞进 React state
   useEffect(() => {
     if (status !== "ready") return undefined;
     const timer = setInterval(() => {
       const src = sourceRef.current;
       setHasHand(!!src && src.readouts.hands > 0);
-    }, 200);
+      if (src) {
+        const s = settingsRef.current;
+        setPinchPower(pinchStrength(src.readouts.pinch, s.pinchEnter, s.pinchExit));
+      }
+    }, 100);
     return () => clearInterval(timer);
   }, [status]);
 
@@ -158,11 +166,12 @@ export function useGestureRuntime(): UseGestureRuntime {
       tracker: trackerRef.current,
       settings,
       hasHand,
+      pinchPower,
       mirror,
       start,
       stop,
       updateSettings,
     }),
-    [status, error, progress, video, settings, hasHand, mirror, start, stop, updateSettings],
+    [status, error, progress, video, settings, hasHand, pinchPower, mirror, start, stop, updateSettings],
   );
 }

@@ -46,11 +46,19 @@ export function palmCenter(lm: Landmark[]): { x: number; y: number } {
   return { x: sx / ids.length, y: sy / ids.length };
 }
 
-/** 手的尺度基准：腕到中指根的距离。所有阈值都用它归一，使远近距离都一致。 */
+/**
+ * 手的尺度基准：掌长（腕→中指根）与掌宽（食指根→小指根）的平均。
+ * 只用掌长的话，手掌朝向镜头一倾，投影长度会缩水，捏合/握拳的比例就整体失真；
+ * 掌宽对朝向不敏感，两者平均后稳定得多。
+ */
 export function handScale(lm: Landmark[]): number {
-  const a = lm[HAND.WRIST];
-  const b = lm[HAND.MIDDLE_MCP];
-  return Math.max(1e-4, Math.hypot(a.x - b.x, a.y - b.y));
+  const wrist = lm[HAND.WRIST];
+  const middle = lm[HAND.MIDDLE_MCP];
+  const index = lm[HAND.INDEX_MCP];
+  const pinky = lm[HAND.PINKY_MCP];
+  const length = Math.hypot(wrist.x - middle.x, wrist.y - middle.y);
+  const width = Math.hypot(index.x - pinky.x, index.y - pinky.y);
+  return Math.max(1e-4, (length + width) / 2);
 }
 
 /** 捏合量：拇指尖↔食指尖距离 / 手尺度。越小越「捏」，约 0.15 完全贴合，0.9 完全张开。 */
@@ -61,11 +69,20 @@ export function pinchRatio(lm: Landmark[]): number {
 }
 
 /**
+ * 捏合力度 0~1（面向展示与提示）：ratio ≤ enter → 1（拉满=触发炸弹），ratio ≥ exit → 0。
+ * 实验室进度条和游戏内提示都用它，避免「比值越小越捏」这种反直觉显示。
+ */
+export function pinchStrength(ratio: number, enter: number, exit: number): number {
+  if (exit <= enter) return ratio <= enter ? 1 : 0;
+  return clamp01((exit - ratio) / (exit - enter));
+}
+
+/**
  * 握拳程度 0~1：四个手指的「指尖到掌心距离 / 手尺度」平均后归一。
  * 1 表示完全蜷起（握拳），0 表示完全伸直。
  *
- * 标定依据：MediaPipe 手上「腕→中指根」约等于一个 handScale，
- * 伸直时指尖到掌心约 1.4 个 handScale，蜷起时约 0.55 个。
+ * 标定依据（手尺度 = 掌长/掌宽均值）：五指伸直时指尖到掌心约 1.7 个尺度，
+ * 完全握拳时约 0.5 个；(1.15 - d) / 0.6 让两端都留有裕量。
  */
 export function fistClosure(lm: Landmark[]): number {
   const palm = palmCenter(lm);
@@ -75,7 +92,7 @@ export function fistClosure(lm: Landmark[]): number {
   for (const tip of tips) {
     const p = lm[tip];
     const d = Math.hypot(p.x - palm.x, p.y - palm.y) / base;
-    sum += clamp01((1.45 - d) / 0.75);
+    sum += clamp01((1.15 - d) / 0.6);
   }
   return clamp01(sum / tips.length);
 }

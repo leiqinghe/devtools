@@ -5,7 +5,7 @@ import { ArrowLeftOutlined, CameraOutlined, PlayCircleOutlined, ReloadOutlined }
 import CameraStage from "../../games/ui/CameraStage";
 import { useGestureRuntime } from "../../games/ui/useGestureRuntime";
 import { GESTURE_DEFAULTS, saveGestureSettings } from "../../games/gesture/settings";
-import { fistClosure, pinchRatio } from "../../games/gesture/math";
+import { fistClosure, pinchRatio, pinchStrength } from "../../games/gesture/math";
 import "../../games/games.css";
 
 const { Text, Paragraph } = Typography;
@@ -58,11 +58,15 @@ export default function HandLab() {
   const raw = useMemo(() => {
     const hands = gesture.tracker?.latest ?? [];
     if (!hands.length) return null;
+    const s = gesture.settings;
     return {
+      /** 原始指尖间距（比值），越小越捏 */
       pinch: pinchRatio(hands[0].landmarks),
+      /** 捏合力度：拉满 = 触发炸弹 */
+      pinchPower: pinchStrength(pinchRatio(hands[0].landmarks), s.pinchEnter, s.pinchExit),
       fist: fistClosure(hands[0].landmarks),
     };
-  }, [gesture.tracker, readout.hands]);
+  }, [gesture.tracker, gesture.settings, readout.hands]);
 
   const update = (patch: Parameters<typeof gesture.updateSettings>[0]) => {
     gesture.updateSettings(patch);
@@ -182,11 +186,16 @@ export default function HandLab() {
         <Col xs={24} md={12} lg={7}>
           <Card title="实时读数" style={{ borderRadius: 14 }} styles={{ body: { padding: 16 } }}>
             <Meter
-              label="捏合量 pinch"
-              value={raw?.pinch ?? readout.pinch}
-              hint={`小于 ${gesture.settings.pinchEnter.toFixed(2)} 触发炸弹，大于 ${gesture.settings.pinchExit.toFixed(2)} 释放`}
+              label="捏合进度（拉满 = 放炸弹）"
+              value={raw?.pinchPower ?? 0}
+              hint={`指尖间距 ${((raw?.pinch ?? readout.pinch) as number).toFixed(2)}：小于 ${gesture.settings.pinchEnter.toFixed(2)} 触发，大于 ${gesture.settings.pinchExit.toFixed(2)} 释放`}
               color="#ffb347"
             />
+            {(raw?.pinchPower ?? 0) >= 0.999 && (
+              <div style={{ marginBottom: 12 }}>
+                <Tag color="gold">💣 捏合已触发炸弹</Tag>
+              </div>
+            )}
             <Meter
               label="握拳程度 fist"
               value={raw?.fist ?? readout.fist}

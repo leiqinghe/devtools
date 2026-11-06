@@ -251,6 +251,7 @@ export default function AircraftGamePage() {
               hud={hud}
               controlLabel={controlLabel}
               handLost={handLost && useHand}
+              pinch={gesture.status === "ready" ? gesture.pinchPower : 0}
               loading={gestureLoading}
               onPause={() => setPhase("paused")}
               muted={muted}
