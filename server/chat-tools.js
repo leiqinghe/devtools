@@ -20,6 +20,7 @@ export const TOOL_CATALOG = [
   { path: "/image-gen", title: "AI 生图", desc: "输入提示词，AI 生成图片并下载" },
   { path: "/image-convert", title: "图片格式转换", desc: "PNG / JPEG / WebP / BMP 格式互转" },
   { path: "/image-compress", title: "图片压缩", desc: "调整图片质量/尺寸，减小文件大小" },
+  { path: "/photo-print", title: "照片打印增强", desc: "手机照片自动提亮增艳适配相纸，批量下载或直接打印" },
   { path: "/image-to-base64", title: "图片转 Base64", desc: "上传图片生成 Data URL 字符串" },
   { path: "/ico-maker", title: "ICO 图标制作", desc: "图片生成 .ico 图标文件" },
   { path: "/image-rounded", title: "图片切圆角", desc: "上传图片切圆角后导出" },
@@ -32,9 +33,6 @@ export const TOOL_CATALOG = [
   { path: "/unit-convert", title: "单位换算", desc: "长度/重量/温度/面积/体积换算" },
   { path: "/id-card-parse", title: "身份证信息提取", desc: "解析身份证号的省份/生日/性别" },
   { path: "/tts-gen", title: "AI 文字转语音", desc: "输入文本生成语音，多角色自动切换音色" },
-  { path: "/games", title: "游戏中心", desc: "手势控制的网页游戏合集，摄像头识别手部动作" },
-  { path: "/games/aircraft", title: "飞机大战", desc: "掌心控制战机，捏合放炸弹，十波敌人与 Boss" },
-  { path: "/games/hand-lab", title: "手势实验室", desc: "实时骨架与手势读数，调灵敏度与触发阈值" },
   { path: "/file-share", title: "文件分享", desc: "上传文件生成短时下载链接和二维码" },
 ];
 

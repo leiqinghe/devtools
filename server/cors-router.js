@@ -4,13 +4,16 @@ import express from "express";
 // 白名单与 chat-router 保持一致（同一套 env，便于统一维护）；非浏览器请求无 Origin 直接放行。
 const ALLOWED_ORIGINS = (
   process.env.CHAT_ALLOWED_ORIGINS ||
-  "https://leiqinghe.cloud,https://tools.leiqinghe.cloud,http://101.201.56.200:8100"
+  // https://localhost / capacitor://localhost：Capacitor App WebView 源（App 内自更新清单请求用）
+  "https://leiqinghe.cloud,https://tools.leiqinghe.cloud,http://101.201.56.200:8100,https://localhost,capacitor://localhost"
 )
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);
 
-const corsPaths = ["/api/tts", "/api/chat"];
+// /api/app：App 版本清单跨域读取。旧版 APK 的 WebView fetch 依赖此 CORS 头才能收到首次
+// 更新提示；新版 APK 已改走原生通道（CapacitorHttp）不依赖 CORS，保留此头兼容历史版本。
+const corsPaths = ["/api/tts", "/api/chat", "/api/app"];
 
 export default function corsRouter() {
   const router = express.Router();

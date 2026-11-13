@@ -19,6 +19,7 @@ import {
   FilterOutlined,
   PictureOutlined,
   CompressOutlined,
+  PrinterOutlined,
   AppstoreOutlined,
   BorderOutlined,
   KeyOutlined,
@@ -28,8 +29,6 @@ import {
   CloudUploadOutlined,
   RobotOutlined,
   AudioOutlined,
-  PlayCircleOutlined,
-  RocketOutlined,
 } from "@ant-design/icons";
 
 export interface ToolItem {
@@ -86,6 +85,7 @@ export const toolGroups: CategoryGroup[] = [
       { path: "/image-gen", Icon: RobotOutlined, title: "AI 生图", desc: "输入提示词，AI 生成图片并下载" },
       { path: "/image-convert", Icon: PictureOutlined, title: "图片格式转换", desc: "PNG / JPEG / WebP / BMP 格式互转" },
       { path: "/image-compress", Icon: CompressOutlined, title: "图片压缩", desc: "调整图片质量/尺寸，减小文件大小" },
+      { path: "/photo-print", Icon: PrinterOutlined, title: "照片打印增强", desc: "手机照片自动提亮增艳适配相纸，批量下载或直接打印" },
       { path: "/image-to-base64", Icon: PictureOutlined, title: "图片转 Base64", desc: "上传图片生成 Data URL 字符串" },
       { path: "/ico-maker", Icon: AppstoreOutlined, title: "ICO 图标制作", desc: "图片生成 .ico 图标文件" },
       { path: "/image-rounded", Icon: BorderOutlined, title: "图片切圆角", desc: "上传图片切圆角后导出" },
@@ -113,14 +113,6 @@ export const toolGroups: CategoryGroup[] = [
     name: "音频工具",
     tools: [
       { path: "/tts-gen", Icon: AudioOutlined, title: "AI 文字转语音", desc: "输入文本生成语音，多角色自动切换音色" },
-    ],
-  },
-  {
-    name: "手势游戏",
-    tools: [
-      { path: "/games", Icon: PlayCircleOutlined, title: "游戏中心", desc: "手势控制的网页游戏合集，摄像头识别手部动作" },
-      { path: "/games/aircraft", Icon: RocketOutlined, title: "飞机大战", desc: "掌心控制战机，捏合放炸弹，十波敌人与 Boss" },
-      { path: "/games/hand-lab", Icon: ExperimentOutlined, title: "手势实验室", desc: "实时骨架与手势读数，调灵敏度与触发阈值" },
     ],
   },
   {

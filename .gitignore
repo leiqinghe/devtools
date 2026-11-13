@@ -7,6 +7,9 @@ dist/
 .env.*
 *.pem
 
+# App 分发仓库（APK 二进制不进 git，云端由 docker volume 持久化）
+server/data/
+
 # 日志与系统文件
 *.log
 .DS_Store
@@ -17,3 +20,6 @@ dist/
 
 # 安全工具本地状态
 .mimosa/
+
+# 百度收录推送进度标记(定时任务状态,不进 git)
+.baidu-push-state/

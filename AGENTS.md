@@ -8,7 +8,7 @@
 - 线上地址：https://tools.leiqinghe.cloud/（备用：http://101.201.56.200:8100/）
 - 服务器代码：`101.201.56.200:/opt/devtools`（ssh 免密直连，`~/.ssh/config` 已配置）
 - 本地开发副本：`~/Documents/code/leiqinghe/devtools`
-- **无 git 仓库**，部署靠 rsync + docker compose
+- GitHub：`https://github.com/leiqinghe/devtools`；部署使用 rsync + docker compose
 
 ## 架构与部署
 
@@ -228,19 +228,12 @@ curl -s http://101.201.56.200:8100/assets/index-*.js | grep -ci "sk-\|api_key"
 - LE API 境外访问偶发 ReadTimeout：重试即可（curl 测 `https://acme-v02.api.letsencrypt.org/directory` 先判连通性）；ZeroSSL 域名在国内解析 NXDOMAIN，不可用
 - HTTP-01 验证失败的假象：CDN 缓存 403/404，用带 query 参数绕缓存测试回源链路
 
-## 手势游戏平台（/games）要点
+## 手势游戏平台（已迁出，2026-11-09）
 
-- **结构**：`src/games/`（平台内核 + 游戏，纯 TS，不依赖 React/antd，方便后续整体搬进独立 App）+ `src/pages/games/`（React 页面外壳）。新游戏 = 在 `src/games/registry.ts` 加一项 + App.tsx 加路由。
-- **输入抽象**：所有输入源实现 `ControlSource`（`src/games/types.ts`），统一产出 `ControlFrame { x, y, aim, fire, special, pause, live, hands }`。`HandSource`（手势）/`PointerSource`/`KeyboardSource` 在 `GameStage.composeFrame` 里合并：手势优先、指针兜底、**键盘 special/pause 在所有分支合并**（曾因只在手势分支合并导致指针模式按空格无效）。
-- **手势语义**（`src/games/gesture/math.ts` 纯函数，`scripts/gesture-check.mts` 37 项单测，`npm run test:games` 跑，经 esbuild 打包后执行）：掌心 = 0/5/9/13/17 五点均值；捏合 = 拇指尖↔食指尖距离/手尺度（`<pinchEnter` 触发、`>pinchExit` 释放，滞回防抖）；握拳 = 四指尖到掌心距离归一（>0.72 持续 fistHoldMs 触发暂停）；平滑用 One Euro Filter（`smoothing` 滑块调 minCutoff）。
-- **MediaPipe**：`@mediapipe/tasks-vision@1.2.2` 动态 import（独立 chunk ~156KB）；wasm + `hand_landmarker.task` 自托管在 `public/mediapipe/1.2.2/`（约 22MB，**1.2.2 无 nosimd 回退版，要求 WASM SIMD**，iOS 16.4 以下会失败并降级指针模式）。`FilesetResolver.forVisionTasks` 指向 `/mediapipe/1.2.2/wasm`；nginx `location /mediapipe/` 显式声明 `application/wasm` MIME + immutable 长缓存。检测输入 480×360、限 30fps，与 60fps 渲染循环解耦。
-- **摄像头**：`gesture/camera.ts`；**必须 HTTPS 或 localhost**（http 的 IP:8100 入口不可用，`cameraSupport()` 给提示并降级）。640×480、`playsInline`，离开页面 stop 全部 track，画面不上传。
-- **贴图**：`public/games/aircraft/sprites/` 6 张 AI 生图（站内 /api/image-gen，脚本 `scripts/gen-sprites.mjs`，`sips -Z 512` 压缩）。生图无真透明底 → 运行时「边缘泛洪 + 亮度阈值」抠黑底（`core/sprites.ts` 的 `keyoutBlack`），加载失败回退代码绘制矢量造型。
-- **音效**：WebAudio 实时合成（`core/audio.ts`），零音频素材；AudioContext 需用户手势后 unlock。
-- **页面**：`/games` 游戏中心（注册表驱动）、`/games/aircraft` 飞机大战（沉浸层 `body.game-immersive` 全屏 + 隐藏聊天球，Esc/握拳暂停）、`/games/hand-lab` 手势实验室（骨架预览 + 灵敏度/阈值滑块 + 持久化）。最高分/设置存 localStorage（`games:` 前缀），异常降级内存。
-- **数值调参**：`src/games/aircraft/balance.ts`（波次/武器/连击/Boss 全在这）；波次脚本 `waves.ts`（1~10 手工设计，10+ 无限缩放，每 5 波 Boss）。
-- **React 坑**：`setUseHand(false)` 后立刻调 `beginRun()`，闭包拿到旧 state，导致点「用鼠标玩」也去申请摄像头 → `beginRun` 必须显式传参 `beginRun(withHand)`。
-- **驱动责任坑**：`HandSource.update()` 是唯一执行 MediaPipe 检测与平滑的地方，**必须有人按帧调它**——`useGestureRuntime` 里有专门的 rAF 驱动循环（status=ready 时启动）。游戏循环和实验室都只读 `frame()`/`readouts`，谁都不负责驱动。漏掉驱动循环的症状：一直提示「没检测到手」、实验室读数恒 0、游戏静默回退指针模式。
+手势游戏整体迁移至独立平台 **playhub**（`~/Documents/code/leiqinghe/playhub`，线上 https://play.leiqinghe.cloud ）。
+本仓库 `/games*` 路由保留为跳转（`src/App.tsx` 的 `GamesRedirect`），聊天工具目录已同步移除游戏条目。
+平台内核、手势语义、MediaPipe 自托管、驱动责任坑等完整开发上下文见 playhub 仓库的 `AGENTS.md`。
+`/api/app` APK 分发接口的权威实现在 playhub 后端；宿主机 nginx 将本域名 `/api/app` 桥接过去（旧版 APK 兼容），本仓库后端已卸载该路由（`server/app-release-router.js` 已删除）。
 
 ## 经验教训（2026-11 AI 生图模块开发实录）
 1. **安全钩子（Mimosa）会拦截含出站请求的代码写入 `server.js`**：静态扫描把「路由读 req.body → 转发请求」判为高危 SSRF，无论防护多完善都拦。

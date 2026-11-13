@@ -176,18 +176,48 @@ const MyTool = lazy(() => import("./pages/tools/MyTool"));
 
 ## SEO 说明
 
-每个工具页面自动生成 SEO 信息（由 `MainLayout.tsx` 统一处理）：
+> 本站 SEO 的完整方法论、新站点接入 SOP、故障排查见 workspace 根目录的 [SEO-PLAYBOOK.md](../SEO-PLAYBOOK.md)。
 
-- `<title>` 格式：`工具名称 - 在线免费 - DevTools`
-- `<meta description>` 格式：`工具名称，工具描述，在线免费工具`
+核心机制：**构建期预渲染**。`npm run build` 中 vite build 之后自动执行 `scripts/build-seo.mjs`，
+依据 `src/data/tools.tsx` 为每个路由生成静态 HTML（`dist/<route>.html`）。
+蜘蛛（百度不执行 JS）与用户看到的是同一个 URL：用户端 React 挂载后替换 `#root` 内的静态内容，
+蜘蛛则直接读取静态 title/正文/链接。
 
-如果需要在某个工具页自定义 SEO header，可在工具组件中通过 `useEffect` 直接操作 `document.title` 覆盖。
+每页 SEO 信息构建期固化 + 运行时兜底（`MainLayout.tsx`，路由切换时同步更新）：
 
-搜索引擎关键优化已内置：
-- 所有内容 SSR 友好（静态 HTML 入口）
-- 语义化路由（`/json-format` 而非 hash 路由）
-- 面包屑导航（搜索引擎可爬取层级关系）
-- Nginx 配置了 Gzip + 静态资源缓存
+- `<title>`：`工具名称在线工具 - 免费使用 - DevTools`（首页：`DevTools 在线工具箱 - 33个免费开发者工具`）
+- `<meta description>`：`工具名称，工具描述。在线免费使用，无需注册登录，数据本地处理不上传服务器。`
+- `<link rel="canonical">`：`https://tools.leiqinghe.cloud/<route>`（无尾斜杠）
+- Open Graph：`og:title / og:description / og:url / og:type / og:site_name`
+- JSON-LD 结构化数据：工具页 `SoftwareApplication` + `BreadcrumbList`，首页 `WebSite`
+- 静态可索引正文：h1、面包屑、工具简介、同类工具链接（首页含全部工具的分类目录）
+
+其他内置优化：
+
+- 语义化路由（`/json-format` 而非 hash 路由），预渲染文件与 URL 一一对应
+- `public/robots.txt`（屏蔽 `/api/` `/share/`，声明 sitemap）
+- `dist/sitemap.xml` 构建期自动生成（33 工具 + 首页，lastmod 为构建日）
+- 真实 404：nginx `try_files $uri $uri.html =404` + 品牌 `404.html`，杜绝软 404
+- 旧 `/games` 路径生成静态迁移页（canonical + meta refresh 指向 play.leiqinghe.cloud）
+
+新增工具后无需任何 SEO 额外操作，构建时自动覆盖（前提：`tools.tsx` 条目保持单行
+`{ path, Icon, title, desc }` 格式，目录解析依赖该结构）。
+
+### 收录推送（部署后手动执行一次）
+
+```bash
+npm run submit:engines            # 百度 + IndexNow 一起推
+npm run submit:engines -- baidu   # 仅百度
+npm run submit:engines -- indexnow
+```
+
+| 渠道 | 前置条件 | 说明 |
+|------|---------|------|
+| 百度「普通收录」API | 环境变量 `BAIDU_PUSH_TOKEN`（[百度搜索资源平台](https://ziyuan.baidu.com) -> 普通收录 -> 推送接口） | 新站先验证站点 + 提交 sitemap，之后每次部署跑一次推送 |
+| IndexNow（Bing/Yandex 等） | 无需注册，`public/indexnow-key.txt` 已随仓库部署 | 部署后运行即推送 |
+| Google | [Google Search Console](https://search.google.com/search-console) 验证 + 提交 sitemap | Google 可执行 JS，收录不受 CSR 影响 |
+
+百度的「自动推送 JS」官方已于 2023 年下线，不要再用；API 主动推送是当前正规通道。
 
 ---
 
@@ -197,13 +227,13 @@ const MyTool = lazy(() => import("./pages/tools/MyTool"));
 
 ```json
 {
-  "siteUrl": "http://your-domain.com:8100",   // 用于生成手机扫码二维码
+  "siteUrl": "https://tools.leiqinghe.cloud",   // 线上地址：手机扫码二维码 / canonical / sitemap 均使用
   "siteName": "DevTools",
   "siteDescription": "开发者在线工具集"
 }
 ```
 
-部署前修改 `siteUrl` 为实际域名或 IP+端口。
+部署前确认 `siteUrl` 为实际线上地址。
 
 ---
 
@@ -281,15 +311,18 @@ ssh root@101.201.56.200 "docker exec -it devtools sh"
 
 上线前逐项确认：
 
-- [ ] `npm run build` 通过，零 error
+- [ ] `npm run build` 通过，零 error（结尾应输出「SEO 构建完成：预渲染 N 个页面」）
 - [ ] `public/site.config.json` 中 `siteUrl` 为实际访问地址
-- [ ] 新工具已在 `src/data/tools.tsx` 注册
+- [ ] 新工具已在 `src/data/tools.tsx` 注册（保持单行 `{ path, Icon, title, desc }` 格式）
 - [ ] 新路由已在 `src/App.tsx` 添加
 - [ ] 阿里云安全组已放行 8100 端口（TCP / 0.0.0.0/0）
 - [ ] 部署后浏览器访问返回 200
+- [ ] `curl -s https://tools.leiqinghe.cloud/json-format` 含真实 title 与正文（而非空壳 `<div id="root">`）
+- [ ] `/robots.txt` `/sitemap.xml` 可访问，`/不存在的路径` 返回 404 状态码
 - [ ] 手机扫码二维码可正常访问
 - [ ] 首页搜索能找到新工具
 - [ ] 新工具页 SEO title/description 正确
+- [ ] 部署后执行 `npm run submit:engines` 推送收录
 
 ---
 
@@ -411,3 +444,30 @@ ssh root@101.201.56.200 "docker exec -it devtools sh"
 + P1          48 个
 + P2          58 个（8 个分类）
 ```
+
+---
+
+## App 分发仓库（APK 自更新，2026-11 新增）
+
+游戏模块新增「疾风剑影 App」分发页（`/games/rune-rush`），配合 quest-runner 仓库的
+Capacitor 插件实现「云端只存最新版 + App 内自动校验更新 + 覆盖安装」。
+
+### 接口（`server/app-release-router.js`）
+
+| 接口 | 说明 |
+|---|---|
+| `POST /api/app/:appId/release` | 发布：multipart（apk/token/versionCode/versionName/changelog/force），token 鉴权 + zip 魔数校验 + 版本回滚保护，原子覆盖 |
+| `GET /api/app/:appId/latest` | 最新版清单 JSON（code/version/size/sha256/changelog/publishedAt） |
+| `GET /api/app/:appId/download` | 下载 APK（Node 流式直出） |
+
+### 服务端配置（docker-compose）
+
+- 环境变量 `APP_RELEASE_TOKEN`（发布口令，未配置则发布接口 503 关闭）
+- volume `./server/data:/app/data/apps`（APK 持久化；目录已 gitignore）
+- 部署：`docker compose build && docker compose up -d`
+
+### 用户侧闭环
+
+1. 开发机：quest-runner 仓库 `node tools/release-apk.mjs --changelog "…" --bump`（或说「更新到云端」走 cloud-release Agent）
+2. 云端：manifest 与 latest.apk 原子替换，下载页自动展示新版本
+3. 手机：打开 App → 3s 后检测到新 versionCode → 弹窗 → 应用内下载（进度 + SHA-256 校验）→ 系统安装器覆盖安装

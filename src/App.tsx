@@ -1,5 +1,5 @@
-import { Suspense, lazy } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Suspense, lazy, useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { Spin } from "antd";
 import MainLayout from "./layouts/MainLayout";
 import Home from "./pages/Home";
@@ -22,6 +22,7 @@ const WordCount = lazy(() => import("./pages/tools/WordCount"));
 const RegexTest = lazy(() => import("./pages/tools/RegexTest"));
 const InfoExtract = lazy(() => import("./pages/tools/InfoExtract"));
 const ImageCompress = lazy(() => import("./pages/tools/ImageCompress"));
+const PhotoPrint = lazy(() => import("./pages/tools/PhotoPrint"));
 const ImageToBase64 = lazy(() => import("./pages/tools/ImageToBase64"));
 const IcoMaker = lazy(() => import("./pages/tools/IcoMaker"));
 const ImageRounded = lazy(() => import("./pages/tools/ImageRounded"));
@@ -36,9 +37,15 @@ const IdCardParse = lazy(() => import("./pages/tools/IdCardParse"));
 const FileShare = lazy(() => import("./pages/tools/FileShare"));
 const ImageGen = lazy(() => import("./pages/tools/ImageGen"));
 const TtsGen = lazy(() => import("./pages/tools/TtsGen"));
-const GamesHome = lazy(() => import("./pages/games/GamesHome"));
-const AircraftGame = lazy(() => import("./pages/games/AircraftGame"));
-const HandLab = lazy(() => import("./pages/games/HandLab"));
+
+/** 游戏已迁往独立平台 playhub，旧链接 301 语义跳转（不留在历史记录）。 */
+function GamesRedirect() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.location.replace(`https://play.leiqinghe.cloud${pathname}`);
+  }, [pathname]);
+  return null;
+}
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
@@ -77,6 +84,7 @@ export default function App() {
         <Route path="/regex-test" element={<LazyLoad><RegexTest /></LazyLoad>} />
         <Route path="/info-extract" element={<LazyLoad><InfoExtract /></LazyLoad>} />
         <Route path="/image-compress" element={<LazyLoad><ImageCompress /></LazyLoad>} />
+        <Route path="/photo-print" element={<LazyLoad><PhotoPrint /></LazyLoad>} />
         <Route path="/image-to-base64" element={<LazyLoad><ImageToBase64 /></LazyLoad>} />
         <Route path="/ico-maker" element={<LazyLoad><IcoMaker /></LazyLoad>} />
         <Route path="/image-rounded" element={<LazyLoad><ImageRounded /></LazyLoad>} />
@@ -91,9 +99,11 @@ export default function App() {
         <Route path="/id-card-parse" element={<LazyLoad><IdCardParse /></LazyLoad>} />
         <Route path="/file-share" element={<LazyLoad><FileShare /></LazyLoad>} />
         <Route path="/tts-gen" element={<LazyLoad><TtsGen /></LazyLoad>} />
-        <Route path="/games" element={<LazyLoad><GamesHome /></LazyLoad>} />
-        <Route path="/games/aircraft" element={<LazyLoad><AircraftGame /></LazyLoad>} />
-        <Route path="/games/hand-lab" element={<LazyLoad><HandLab /></LazyLoad>} />
+        <Route path="/games" element={<GamesRedirect />} />
+        <Route path="/games/aircraft" element={<GamesRedirect />} />
+        <Route path="/games/hand-lab" element={<GamesRedirect />} />
+        <Route path="/games/rune-rush" element={<GamesRedirect />} />
+        <Route path="/games/*" element={<GamesRedirect />} />
       </Route>
     </Routes>
   );

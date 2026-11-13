@@ -37,6 +37,11 @@ services:
       - CHAT_MAX_TOKENS=${CHAT_MAX_TOKENS:-2000}
       - CHAT_ALLOWED_ORIGINS=${CHAT_ALLOWED_ORIGINS:-}
       - CHAT_ALLOWED_HOSTS=${CHAT_ALLOWED_HOSTS:-}
+      - APP_RELEASE_TOKEN=${APP_RELEASE_TOKEN:-}
+      - APP_RELEASE_DIR=/app/data/apps
+    volumes:
+      # App 分发包持久化：重建容器不丢 latest.apk
+      - ./server/data:/app/data/apps
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/',()=>process.exit(0)).on('error',()=>process.exit(1))"]
       interval: 5s

@@ -5,8 +5,47 @@ import { HomeOutlined, SearchOutlined, QrcodeOutlined, MenuOutlined } from "@ant
 import type { MenuProps } from "antd";
 import QRCodeLib from "qrcode";
 import { toolGroups, allTools, getToolByPath, getCategoryName, renderIcon } from "../data/tools";
+import type { ToolItem } from "../data/tools";
 
 const { Header, Content, Footer } = Layout;
+
+const SITE_NAME = "DevTools";
+const toolPageTitle = (tool: ToolItem) => `${tool.title}在线工具 - 免费使用 - ${SITE_NAME}`;
+const toolPageDesc = (tool: ToolItem) =>
+  `${tool.title}，${tool.desc}。在线免费使用，无需注册登录，数据本地处理不上传服务器。`;
+const homeTitle = `${SITE_NAME} 在线工具箱 - ${allTools.length}个免费开发者工具`;
+const homeDesc = `${SITE_NAME} 在线工具箱，提供时间戳转换、二维码生成、JSON 格式化、图片压缩、房贷计算等 ${allTools.length} 个免费在线工具，打开即用，无需注册，数据本地处理。`;
+
+function setMeta(attr: "name" | "property", key: string, content: string) {
+  let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute(attr, key);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", content);
+}
+
+function setCanonical(href: string) {
+  let el = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (!el) {
+    el = document.createElement("link");
+    el.rel = "canonical";
+    document.head.appendChild(el);
+  }
+  el.href = href;
+}
+
+function setJsonLd(data: object[]) {
+  let el = document.getElementById("seo-jsonld") as HTMLScriptElement | null;
+  if (!el) {
+    el = document.createElement("script");
+    el.type = "application/ld+json";
+    el.id = "seo-jsonld";
+    document.head.appendChild(el);
+  }
+  el.textContent = JSON.stringify(data);
+}
 
 function matchSearch(text: string, keyword: string): boolean {
   return text.toLowerCase().includes(keyword.toLowerCase());
@@ -42,25 +81,52 @@ export default function MainLayout() {
 
   useEffect(() => {
     const tool = getToolByPath(location.pathname);
+    const base = (siteUrl || window.location.origin).replace(/\/$/, "");
+    const url = `${base}${location.pathname}`;
+    const title = tool ? toolPageTitle(tool) : homeTitle;
+    const description = tool ? toolPageDesc(tool) : homeDesc;
+    document.title = title;
+    setMeta("name", "description", description);
+    setMeta("property", "og:title", title);
+    setMeta("property", "og:description", description);
+    setMeta("property", "og:url", url);
+    setCanonical(url);
     if (tool) {
-      document.title = `${tool.title} - 在线免费 - DevTools`;
-      const meta = document.querySelector('meta[name="description"]');
-      if (meta) {
-        meta.setAttribute("content", `${tool.title}，${tool.desc}，在线免费工具`);
-      } else {
-        const newMeta = document.createElement("meta");
-        newMeta.name = "description";
-        newMeta.content = `${tool.title}，${tool.desc}，在线免费工具`;
-        document.head.appendChild(newMeta);
-      }
+      const category = getCategoryName(location.pathname) ?? "";
+      setJsonLd([
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: tool.title,
+          url,
+          description,
+          applicationCategory: "UtilitiesApplication",
+          operatingSystem: "Web",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "CNY" },
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "首页", item: `${base}/` },
+            { "@type": "ListItem", position: 2, name: category },
+            { "@type": "ListItem", position: 3, name: tool.title, item: url },
+          ],
+        },
+      ]);
     } else {
-      document.title = "DevTools - 开发者在线工具集，免费在线工具";
-      const meta = document.querySelector('meta[name="description"]');
-      if (meta) {
-        meta.setAttribute("content", "DevTools 开发者在线工具集，提供时间戳转换、二维码生成/解码、JSON格式化、颜色转换、图片格式转换等，免费在线使用");
-      }
+      setJsonLd([
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: SITE_NAME,
+          url: `${base}/`,
+          description,
+          inLanguage: "zh-CN",
+        },
+      ]);
     }
-  }, [location.pathname]);
+  }, [location.pathname, siteUrl]);
 
   const filteredTools = searchText.trim()
     ? allTools.filter(
@@ -324,7 +390,11 @@ export default function MainLayout() {
       </Content>
 
       <Footer style={{ textAlign: "center", color: "#bbb", background: "transparent", fontSize: 13 }}>
-        DevTools 开发者在线工具集 &copy; {new Date().getFullYear()}&nbsp;&nbsp;·&nbsp;&nbsp;打开即用，无需注册&nbsp;&nbsp;·&nbsp;&nbsp;所有数据本地处理，不上传服务器
+        DevTools 在线工具箱 &copy; {new Date().getFullYear()}&nbsp;&nbsp;·&nbsp;&nbsp;由{" "}
+        <a href="https://www.leiqinghe.cloud" target="_blank" rel="noreferrer" style={{ color: "#999" }}>
+          leiqinghe
+        </a>{" "}
+        独立开发&nbsp;&nbsp;·&nbsp;&nbsp;打开即用，无需注册&nbsp;&nbsp;·&nbsp;&nbsp;所有数据本地处理，不上传服务器
       </Footer>
     </Layout>
   );
